@@ -36,7 +36,7 @@ import scala.collection.JavaConverters._
 class CompositeRelDataType(
     val compositeType: CompositeType[_],
     typeFactory: FlinkTypeFactory)
-  extends RelRecordType(StructKind.PEEK_FIELDS, createFieldList(compositeType, typeFactory)) {
+  extends RelRecordType(StructKind.PEEK_FIELDS_NO_EXPAND, createFieldList(compositeType, typeFactory)) {
 
   override def toString = s"COMPOSITE($compositeType)"
 

@@ -56,6 +56,24 @@ class TableWithSQLITCase(
   }
 
   @Test
+  def testSQLTableVerifyPeekField(): Unit = {
+
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val ds = CollectionDataSets.getSmallNestedTupleDataSet(env)
+    tEnv.registerDataSet("MyTable", ds, 'a, 'b)
+
+    val sqlQuery = "SELECT * FROM MyTable WHERE a._1 > 2"
+
+    val result = tEnv.sql(sqlQuery).select('a.get("_1"), 'a.get("_2"))
+
+    val expected = "3,3"
+    val results = result.toDataSet[Row].collect()
+    TestBaseUtils.compareResultAsText(results.asJava, expected)
+  }
+
+  @Test
   def testTableSQLTable(): Unit = {
 
     val env = ExecutionEnvironment.getExecutionEnvironment

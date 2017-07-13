@@ -155,6 +155,25 @@ class AggregationsITCase(
   }
 
   @Test
+  def testTableAggregationWithNestedQuery(): Unit = {
+
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val ds = CollectionDataSets.getSmallNestedTupleDataSet(env).toTable(tEnv, 'a, 'b)
+    tEnv.registerDataSet("MyTable", ds)
+
+    val sqlQuery = "SELECT AVG(a._1), SUM(a._2), COUNT(b) FROM " +
+      "(SELECT * FROM MyTable WHERE a._1 > 0)"
+
+    val result = tEnv.sql(sqlQuery)
+
+    val expected = "2,6,3"
+    val results = result.toDataSet[Row].collect()
+    TestBaseUtils.compareResultAsText(results.asJava, expected)
+  }
+
+  @Test
   def testAggregationWithTwoCount(): Unit = {
 
     val env = ExecutionEnvironment.getExecutionEnvironment
