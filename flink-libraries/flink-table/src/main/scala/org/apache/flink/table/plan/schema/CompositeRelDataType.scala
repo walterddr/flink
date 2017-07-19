@@ -54,6 +54,7 @@ class CompositeRelDataType(
     compositeType.hashCode()
   }
 
+  override def isNullable: Boolean = true
 }
 
 object CompositeRelDataType {

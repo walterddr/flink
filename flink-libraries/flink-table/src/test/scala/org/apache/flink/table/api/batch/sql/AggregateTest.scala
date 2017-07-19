@@ -98,6 +98,45 @@ class AggregateTest extends TableTestBase {
   }
 
   @Test
+  def testAggregateWithFilterOnNestedFields(): Unit = {
+    val util = batchTestUtil()
+    util.addTable[(Int, Long, (Int, Long))]("MyTable", 'a, 'b, 'c)
+
+    val sqlQuery = "SELECT avg(a), sum(b), count(c) FROM MyTable WHERE a = 1"
+
+    val calcNode = unaryNode(
+      "DataSetCalc",
+      batchTableNode(0),
+      term("select", "a", "b", "c"),
+      term("where", "=(a, 1)")
+    )
+
+    val setValues =  unaryNode(
+      "DataSetValues",
+      calcNode,
+      tuples(List(null,null,null)),
+      term("values","a","b","c")
+    )
+
+    val union = unaryNode(
+      "DataSetUnion",
+      setValues,
+      term("union","a","b","c")
+    )
+
+    val aggregate = unaryNode(
+      "DataSetAggregate",
+      union,
+      term("select",
+        "AVG(a) AS EXPR$0",
+        "SUM(b) AS EXPR$1",
+        "COUNT(c) AS EXPR$2")
+    )
+
+    util.verifySql(sqlQuery, aggregate)
+  }
+
+  @Test
   def testGroupAggregate(): Unit = {
     val util = batchTestUtil()
     util.addTable[(Int, Long, Int)]("MyTable", 'a, 'b, 'c)

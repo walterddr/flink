@@ -202,7 +202,7 @@ class FlinkTypeFactory(typeSystem: RelDataTypeSystem) extends JavaTypeFactoryImp
       nullable: Boolean)
     : RelDataType = relDataType match {
       case composite: CompositeRelDataType =>
-        // at the moment we do not care about nullability
+        // nullability of CompositeRelDataType is always set to true
         canonize(composite)
       case array: ArrayRelDataType =>
         val elementType = createTypeWithNullability(array.getComponentType, nullable)
