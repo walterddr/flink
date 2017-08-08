@@ -18,6 +18,8 @@
 
 package org.apache.flink.table.runtime.batch.table
 
+import java.io.File
+import java.net.{URI, URL, URLClassLoader}
 import java.sql.{Date, Time, Timestamp}
 import java.util
 
@@ -347,6 +349,24 @@ class CalcITCase(
     val expected = "78.454654654654654,4E+9999,1984-07-12,14:34:24,1984-07-12 14:34:24.0," +
       "11.2,11.2,1984-07-12,14:34:24,1984-07-12 14:34:24.0"
     val results = t.toDataSet[Row].collect()
+    TestBaseUtils.compareResultAsText(results.asJava, expected)
+  }
+
+  @Test
+  def testUserDefinedFunctionDynamicClassloader() {
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tableEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val classLoader = getClass.getClassLoader
+    val filePath = "file:///Users/rongr/dev/_data/flink/flink-libraries/flink-table/src/test/scala/resources/dynamic_udf_load_test.jar"
+    val udfClassLoader: ClassLoader = new URLClassLoader(List(new URI(filePath).toURL).toArray)
+    val clazz = udfClassLoader.loadClass("org.apache.flink.table.udf.HelloWorld")
+    val helloWorldUDF: ScalarFunction = clazz.newInstance().asInstanceOf[ScalarFunction]
+    tableEnv.registerFunction("helloWorld", helloWorldUDF)
+    val table = env.fromElements("a", "b", "c").toTable(tableEnv, 'text)
+    val result = table.select("text.helloWorld()")
+    val results = result.toDataSet[Row].collect()
+    val expected = "Hello World!"
     TestBaseUtils.compareResultAsText(results.asJava, expected)
   }
 
