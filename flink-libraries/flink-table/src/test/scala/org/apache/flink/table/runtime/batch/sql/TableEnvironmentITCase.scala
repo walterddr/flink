@@ -138,4 +138,24 @@ class TableEnvironmentITCase(
     assertEquals(expected.sorted, MemoryTableSinkUtil.results.sorted)
   }
 
+  @Test
+  def testCompositeArrayAccess(): Unit = {
+
+    val env = ExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env, config)
+
+    val ds = CollectionDataSets.getSmallCompositeArrayDataSet(env)
+    tEnv.registerDataSet("MyTable", ds, 'a, 'b)
+
+    val resultTable = tEnv.scan("MyTable").select('a.at(1).get(0))
+    val resultTableCollected = resultTable.toDataSet[Row].collect()
+
+    val expected = "0\n" + "1\n" + "2"
+    TestBaseUtils.compareResultAsText(resultTableCollected.asJava, expected)
+
+    val resultSQL = tEnv.sqlQuery("SELECT a[1].f0 FROM MyTable")
+    val resultSQLCollected = resultSQL.toDataSet[Row].collect() // throws exception
+
+    TestBaseUtils.compareResultAsText(resultSQLCollected.asJava, expected)
+  }
 }

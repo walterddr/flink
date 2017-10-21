@@ -103,6 +103,14 @@ object CollectionDataSets {
     env.fromCollection(Random.shuffle(data))
   }
 
+  def getSmallCompositeArrayDataSet(env: ExecutionEnvironment): DataSet[(Array[(Int, String)], String)] = {
+    val data = new mutable.MutableList[(Array[(Int, String)], String)]
+    data.+=((Array.fill[(Int, String)](1){(0, "a")}, "one"))
+    data.+=((Array.fill[(Int, String)](2){(1, "b")}, "two"))
+    data.+=((Array.fill[(Int, String)](3){(2, "c")}, "three"))
+    env.fromCollection(Random.shuffle(data))
+  }
+
   def getGroupSortedNestedTupleDataSet(env: ExecutionEnvironment): DataSet[((Int, Int), String)] = {
     val data = new mutable.MutableList[((Int, Int), String)]
     data.+=(((1, 3), "a"))
