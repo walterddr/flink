@@ -22,6 +22,7 @@ import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.java.tuple.Tuple1
 import org.apache.flink.api.scala._
 import org.apache.flink.streaming.api.TimeCharacteristic
+import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -38,8 +39,6 @@ import org.junit._
 import scala.collection.mutable
 
 class OverWindowITCase extends StreamingWithStateTestBase {
-  private val queryConfig = new StreamQueryConfig()
-  queryConfig.withIdleStateRetentionTime(Time.hours(1), Time.hours(2))
 
   val data = List(
     (1L, 1, "Hello"),
@@ -87,13 +86,14 @@ class OverWindowITCase extends StreamingWithStateTestBase {
   def testProcTimeBoundedGroupWindow(): Unit = {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
+    env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
     env.setStateBackend(getStateBackend)
     val tEnv = TableEnvironment.getTableEnvironment(env)
     env.setParallelism(1)
     StreamITCase.clear
 
-    val t = StreamTestData.get5TupleDataStream(env)
-      .toTable(tEnv, 'a, 'b, 'c, 'd, 'e, 'proctime.proctime)
+    val t = StreamTestData.get5TupleDataStream(env).assignAscendingTimestamps(x => x._2)
+      .toTable(tEnv, 'a, 'b, 'c, 'd, 'e, 'rowtime.rowtime)
     tEnv.registerTable("MyTable", t)
 
     val sqlQuery = "SELECT a, " +
@@ -101,10 +101,10 @@ class OverWindowITCase extends StreamingWithStateTestBase {
       "  MIN(DISTINCT e) " +
       "FROM MyTable " +
       "GROUP BY a, " +
-      "  TUMBLE(proctime, INTERVAL '5' SECOND) "
+      "  TUMBLE(rowtime, INTERVAL '5' SECOND) "
 
-    val result = tEnv.sqlQuery(sqlQuery).toRetractStream[Row]
-    result.addSink(new StreamITCase.RetractingSink)
+    val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]
+    result.addSink(new StreamITCase.StringSink[Row])
     env.execute()
 
     val expected = List(
@@ -113,7 +113,7 @@ class OverWindowITCase extends StreamingWithStateTestBase {
       "3,5,2",
       "4,3,1",
       "5,6,1")
-    assertEquals(expected.sorted, StreamITCase.retractedResults.sorted)
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
   }
 
   @Test
