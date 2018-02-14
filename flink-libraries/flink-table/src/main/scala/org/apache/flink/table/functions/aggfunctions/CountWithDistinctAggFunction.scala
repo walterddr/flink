@@ -23,20 +23,22 @@ import java.util
 import java.util.function.Consumer
 
 import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeInformation}
-import org.apache.flink.api.java.tuple.{Tuple1 => JTuple1}
-import org.apache.flink.api.java.typeutils.TupleTypeInfo
+import org.apache.flink.api.java.typeutils.{PojoField, PojoTypeInfo, TupleTypeInfo}
 import org.apache.flink.table.api.dataview.MapView
+import org.apache.flink.table.dataview.MapViewTypeInfo
 import org.apache.flink.table.functions.AggregateFunction
 
 /** The initial accumulator for count aggregate function with distinct mapping */
-class CountDistinctAccumulator[T](var map: MapView[T, Integer]) extends JTuple1[Long] {
-  f0 = 0L //count
+class CountDistinctAccumulator[T](var map: MapView[T, Integer], var f0: Long) {
+  def this() {
+    this(new MapView[T, Integer](), 0L)
+  }
 }
 
 /**
   * built-in count aggregate function
   */
-class CountWithDistinctAggFunction[T]
+class CountWithDistinctAggFunction[T](valueTypeInfo: TypeInformation[_])
   extends AggregateFunction[JLong, CountDistinctAccumulator[T]] {
 
   // process argument is optimized by Calcite.
@@ -75,7 +77,7 @@ class CountWithDistinctAggFunction[T]
   }
 
   override def getValue(acc: CountDistinctAccumulator[T]): JLong = {
-    acc.f0
+    acc.map.map.size.asInstanceOf[Long]
   }
 
   def merge(acc: CountDistinctAccumulator[T],
@@ -95,7 +97,7 @@ class CountWithDistinctAggFunction[T]
   }
 
   override def createAccumulator(): CountDistinctAccumulator[T] = {
-    new CountDistinctAccumulator[T](new MapView[T, Integer]())
+    new CountDistinctAccumulator[T](new MapView[T, Integer](), 0L)
   }
 
   def resetAccumulator(acc: CountDistinctAccumulator[T]): Unit = {
@@ -104,7 +106,12 @@ class CountWithDistinctAggFunction[T]
   }
 
   override def getAccumulatorType: TypeInformation[CountDistinctAccumulator[T]] = {
-    new TupleTypeInfo(classOf[CountDistinctAccumulator[T]], BasicTypeInfo.LONG_TYPE_INFO)
+    val clazz = classOf[CountDistinctAccumulator[T]]
+    val pojoFields = new util.ArrayList[PojoField]
+    pojoFields.add(new PojoField(clazz.getDeclaredField("map"),
+      new MapViewTypeInfo[T, Integer](
+        valueTypeInfo.asInstanceOf[TypeInformation[T]], BasicTypeInfo.INT_TYPE_INFO)))
+    new PojoTypeInfo[CountDistinctAccumulator[T]](clazz, pojoFields)
   }
 
   override def getResultType: TypeInformation[JLong] =

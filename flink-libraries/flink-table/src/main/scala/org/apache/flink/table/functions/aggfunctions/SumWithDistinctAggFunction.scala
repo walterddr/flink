@@ -20,16 +20,21 @@ package org.apache.flink.table.functions.aggfunctions
 import java.math.BigDecimal
 import java.lang.{Iterable => JIterable}
 import java.util
+import java.util.Map
 import java.util.function.Consumer
 
 import org.apache.flink.api.common.typeinfo.{BasicTypeInfo, TypeInformation}
-import org.apache.flink.api.java.tuple.{Tuple2 => JTuple2}
-import org.apache.flink.api.java.typeutils.TupleTypeInfo
+import org.apache.flink.api.java.typeutils.{PojoField, PojoTypeInfo}
 import org.apache.flink.table.api.dataview.MapView
+import org.apache.flink.table.dataview.MapViewTypeInfo
 import org.apache.flink.table.functions.AggregateFunction
 
 /** The initial accumulator for Sum aggregate distinct function */
-class SumWithDistinctAccumulator[T](var map: MapView[T, Integer]) extends JTuple2[T, Long]
+class SumWithDistinctAccumulator[T](var map: MapView[T, Integer]) {
+  def this() {
+    this(new MapView[T, Integer]())
+  }
+}
 
 
 /**
@@ -40,13 +45,12 @@ class SumWithDistinctAccumulator[T](var map: MapView[T, Integer]) extends JTuple
 abstract class SumWithDistinctAggFunction[T: Numeric]
   extends AggregateFunction[T, SumWithDistinctAccumulator[T]] {
 
-  private val numeric = implicitly[Numeric[T]]
+  protected val numeric: Numeric[T] = implicitly[Numeric[T]]
 
   override def createAccumulator(): SumWithDistinctAccumulator[T] = {
-    val acc = new SumWithDistinctAccumulator[T](new MapView[T, Integer]())
-    acc.f0 = numeric.zero //sum
-    acc.f1 = 0L //total count
-    acc
+    new SumWithDistinctAccumulator[T](
+      new MapView[T, Integer]()
+    )
   }
 
   def accumulate(acc: SumWithDistinctAccumulator[T], value: Any): Unit = {
@@ -54,8 +58,6 @@ abstract class SumWithDistinctAggFunction[T: Numeric]
       val v = value.asInstanceOf[T]
       if (!acc.map.contains(v)) {
         acc.map.put(v, 1)
-        acc.f0 = numeric.plus(v, acc.f0)
-        acc.f1 += 1
       } else {
         acc.map.put(v, acc.map.get(v) + 1)
       }
@@ -69,16 +71,20 @@ abstract class SumWithDistinctAggFunction[T: Numeric]
         acc.map.put(v, acc.map.get(v) - 1)
         if (acc.map.get(v) <= 0) {
           acc.map.remove(v)
-          acc.f0 = numeric.minus(acc.f0, v)
-          acc.f1 -= 1
         }
       }
     }
   }
 
   override def getValue(acc: SumWithDistinctAccumulator[T]): T = {
-    if (acc.f1 > 0) {
-      acc.f0
+    if (acc.map.map.size() > 0) {
+      var sum = numeric.zero
+      acc.map.entries.forEach(new Consumer[Map.Entry[T, Integer]] {
+        override def accept(t: Map.Entry[T, Integer]): Unit = {
+          sum = numeric.plus(sum, t.getKey)
+        }
+      })
+      sum
     } else {
       null.asInstanceOf[T]
     }
@@ -94,8 +100,6 @@ abstract class SumWithDistinctAggFunction[T: Numeric]
             acc.map.put(t.getKey, acc.map.get(t.getKey) + t.getValue)
           } else {
             acc.map.put(t.getKey, t.getValue)
-            acc.f0 = numeric.plus(acc.f0, t.getKey)
-            acc.f1 += 1
           }
         }
       })
@@ -104,15 +108,15 @@ abstract class SumWithDistinctAggFunction[T: Numeric]
 
   def resetAccumulator(acc: SumWithDistinctAccumulator[T]): Unit = {
     acc.map.map.clear()
-    acc.f0 = numeric.zero
-    acc.f1 = 0L
   }
 
   override def getAccumulatorType: TypeInformation[SumWithDistinctAccumulator[T]] = {
-    new TupleTypeInfo(
-      classOf[SumWithDistinctAccumulator[T]],
-      getValueTypeInfo,
-      BasicTypeInfo.LONG_TYPE_INFO)
+    val clazz = classOf[SumWithDistinctAccumulator[T]]
+    val pojoFields = new util.ArrayList[PojoField]
+    pojoFields.add(new PojoField(clazz.getDeclaredField("map"),
+      new MapViewTypeInfo[T, Integer](
+        getValueTypeInfo.asInstanceOf[TypeInformation[T]], BasicTypeInfo.INT_TYPE_INFO)))
+    new PojoTypeInfo[SumWithDistinctAccumulator[T]](clazz, pojoFields)
   }
 
   def getValueTypeInfo: TypeInformation[_]
@@ -161,9 +165,10 @@ class DoubleSumWithDistinctAggFunction extends SumWithDistinctAggFunction[Double
 }
 
 /** The initial accumulator for Big Decimal Sum with Distinct aggregate function */
-class DecimalSumWithDistinctAccumulator(var map: MapView[BigDecimal, Integer]) extends JTuple2[BigDecimal, Long] {
-  f0 = BigDecimal.ZERO
-  f1 = 0L
+class DecimalSumWithDistinctAccumulator(var map: MapView[BigDecimal, Integer]) {
+  def this() {
+    this(new MapView[BigDecimal, Integer])
+  }
 }
 
 /**
@@ -181,8 +186,6 @@ class DecimalSumWithDistinctAggFunction
       val v = value.asInstanceOf[BigDecimal]
       if (!acc.map.contains(v)) {
         acc.map.put(v, 1)
-        acc.f0 = acc.f0.add(v)
-        acc.f1 += 1L
       } else {
         acc.map.put(v, acc.map.get(v) + 1)
       }
@@ -196,18 +199,22 @@ class DecimalSumWithDistinctAggFunction
         acc.map.put(v, acc.map.get(v) - 1)
         if (acc.map.get(v) <= 0) {
           acc.map.remove(v)
-          acc.f0 = acc.f0.subtract(v)
-          acc.f1 -= 1L
         }
       }
     }
   }
 
   override def getValue(acc: DecimalSumWithDistinctAccumulator): BigDecimal = {
-    if (acc.f1 == 0) {
-      null.asInstanceOf[BigDecimal]
+    if (acc.map.map.size >= 0) {
+      var sum = BigDecimal.ZERO
+      acc.map.entries.forEach(new Consumer[Map.Entry[BigDecimal, Integer]] {
+        override def accept(t: Map.Entry[BigDecimal, Integer]): Unit = {
+          sum = sum.add(t.getKey)
+        }
+      })
+      sum
     } else {
-      acc.f0
+      null.asInstanceOf[BigDecimal]
     }
   }
 
@@ -221,8 +228,6 @@ class DecimalSumWithDistinctAggFunction
             acc.map.put(t.getKey, acc.map.get(t.getKey) + t.getValue)
           } else {
             acc.map.put(t.getKey, t.getValue)
-            acc.f0 = acc.f0.add(t.getKey)
-            acc.f1 += 1
           }
         }
       })
@@ -231,14 +236,14 @@ class DecimalSumWithDistinctAggFunction
 
   def resetAccumulator(acc: DecimalSumWithDistinctAccumulator): Unit = {
     acc.map.clear()
-    acc.f0 = BigDecimal.ZERO
-    acc.f1 = 0L
   }
 
   override def getAccumulatorType: TypeInformation[DecimalSumWithDistinctAccumulator] = {
-    new TupleTypeInfo(
-      classOf[DecimalSumWithDistinctAccumulator],
-      BasicTypeInfo.BIG_DEC_TYPE_INFO,
-      BasicTypeInfo.LONG_TYPE_INFO)
+    val clazz = classOf[DecimalSumWithDistinctAccumulator]
+    val pojoFields = new util.ArrayList[PojoField]
+    pojoFields.add(new PojoField(clazz.getDeclaredField("map"),
+      new MapViewTypeInfo[BigDecimal, Integer](
+        BasicTypeInfo.BIG_DEC_TYPE_INFO, BasicTypeInfo.INT_TYPE_INFO)))
+    new PojoTypeInfo[DecimalSumWithDistinctAccumulator](clazz, pojoFields)
   }
 }

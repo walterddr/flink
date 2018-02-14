@@ -22,7 +22,6 @@ import org.apache.flink.api.common.time.Time
 import org.apache.flink.api.java.tuple.Tuple1
 import org.apache.flink.api.scala._
 import org.apache.flink.streaming.api.TimeCharacteristic
-import org.apache.flink.streaming.api.functions.AssignerWithPunctuatedWatermarks
 import org.apache.flink.streaming.api.functions.source.SourceFunction
 import org.apache.flink.streaming.api.functions.source.SourceFunction.SourceContext
 import org.apache.flink.streaming.api.scala.StreamExecutionEnvironment
@@ -83,7 +82,7 @@ class OverWindowITCase extends StreamingWithStateTestBase {
   }
 
   @Test
-  def testProcTimeBoundedGroupWindow(): Unit = {
+  def testRowtimeBoundedGroupWindow(): Unit = {
 
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     env.setStreamTimeCharacteristic(TimeCharacteristic.EventTime)
@@ -98,7 +97,8 @@ class OverWindowITCase extends StreamingWithStateTestBase {
 
     val sqlQuery = "SELECT a, " +
       "  SUM(DISTINCT e), " +
-      "  MIN(DISTINCT e) " +
+      "  MIN(DISTINCT e), " +
+      "  COUNT(DISTINCT e) " +
       "FROM MyTable " +
       "GROUP BY a, " +
       "  TUMBLE(rowtime, INTERVAL '5' SECOND) "
@@ -108,11 +108,11 @@ class OverWindowITCase extends StreamingWithStateTestBase {
     env.execute()
 
     val expected = List(
-      "1,1,1",
-      "2,3,1",
-      "3,5,2",
-      "4,3,1",
-      "5,6,1")
+      "1,1,1,1",
+      "2,3,1,2",
+      "3,5,2,2",
+      "4,3,1,2",
+      "5,6,1,3")
     assertEquals(expected.sorted, StreamITCase.testResults.sorted)
   }
 
@@ -131,9 +131,9 @@ class OverWindowITCase extends StreamingWithStateTestBase {
 
     val sqlQuery = "SELECT a, " +
       "  SUM(DISTINCT e) OVER (" +
-      "    PARTITION BY a ORDER BY proctime ROWS BETWEEN 4 PRECEDING AND CURRENT ROW), " +
+      "    PARTITION BY a ORDER BY proctime ROWS BETWEEN 3 PRECEDING AND CURRENT ROW), " +
       "  MIN(DISTINCT e) OVER (" +
-      "    PARTITION BY a ORDER BY proctime ROWS BETWEEN 4 PRECEDING AND CURRENT ROW) " +
+      "    PARTITION BY a ORDER BY proctime ROWS BETWEEN 3 PRECEDING AND CURRENT ROW) " +
       "FROM MyTable"
 
     val result = tEnv.sqlQuery(sqlQuery).toAppendStream[Row]

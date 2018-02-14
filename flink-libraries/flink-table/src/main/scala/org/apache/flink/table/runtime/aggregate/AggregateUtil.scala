@@ -1137,12 +1137,24 @@ object AggregateUtil {
       val argList: util.List[Integer] = aggregateCall.getArgList
 
       if (aggregateCall.getAggregation.isInstanceOf[SqlCountAggFunction]) {
-        aggregates(index) = new CountAggFunction
-        if (argList.isEmpty) {
-          aggFieldIndexes(index) = Array[Int](-1)
-        } else {
-          aggFieldIndexes(index) = argList.asScala.map(i => i.intValue).toArray
-        }
+          if (!aggregateCall.isDistinct) {
+            aggregates(index) = new CountAggFunction
+            if (argList.isEmpty) {
+              aggFieldIndexes(index) = Array[Int](-1)
+            } else {
+              aggFieldIndexes(index) = argList.asScala.map(i => i.intValue).toArray
+            }
+          } else {
+            aggFieldIndexes(index) = argList.asScala.map(i => i.intValue).toArray
+            val types: Array[TypeInformation[_]] = aggFieldIndexes(index).map(
+              idx => FlinkTypeFactory.toTypeInfo(aggregateInputType.getFieldList.get(idx).getType)
+            )
+            if (types.size == 1) {
+              aggregates(index) = new CountWithDistinctAggFunction(types(0))
+            } else {
+              throw new TableException("Distinct aggregator only supports single field!")
+            }
+          }
       } else {
         if (argList.isEmpty) {
           throw new TableException("Aggregate fields should not be empty.")
@@ -1157,7 +1169,26 @@ object AggregateUtil {
         aggregateCall.getAggregation match {
 
           case _: SqlSumAggFunction =>
-            if (needRetraction) {
+            if (isDistinct) {
+              aggregates(index) = sqlTypeName match {
+                case TINYINT =>
+                  new ByteSumWithDistinctAggFunction
+                case SMALLINT =>
+                  new ShortSumWithDistinctAggFunction
+                case INTEGER =>
+                  new IntSumWithDistinctAggFunction
+                case BIGINT =>
+                  new LongSumWithDistinctAggFunction
+                case FLOAT =>
+                  new FloatSumWithDistinctAggFunction
+                case DOUBLE =>
+                  new DoubleSumWithDistinctAggFunction
+                case DECIMAL =>
+                  new DecimalSumWithDistinctAggFunction
+                case sqlType: SqlTypeName =>
+                  throw new TableException(s"Sum aggregate does no support type: '$sqlType'")
+              }
+            } else if (needRetraction) {
               aggregates(index) = sqlTypeName match {
                 case TINYINT =>
                   new ByteSumWithRetractAggFunction
@@ -1173,25 +1204,6 @@ object AggregateUtil {
                   new DoubleSumWithRetractAggFunction
                 case DECIMAL =>
                   new DecimalSumWithRetractAggFunction
-                case sqlType: SqlTypeName =>
-                  throw new TableException(s"Sum aggregate does no support type: '$sqlType'")
-              }
-            } else if (isDistinct) {
-              aggregates(index) = sqlTypeName match {
-                case TINYINT =>
-                  new ByteSumAggFunction
-                case SMALLINT =>
-                  new ShortSumAggFunction
-                case INTEGER =>
-                  new IntSumAggFunction
-                case BIGINT =>
-                  new LongSumAggFunction
-                case FLOAT =>
-                  new FloatSumAggFunction
-                case DOUBLE =>
-                  new DoubleSumAggFunction
-                case DECIMAL =>
-                  new DecimalSumAggFunction
                 case sqlType: SqlTypeName =>
                   throw new TableException(s"Sum aggregate does no support type: '$sqlType'")
               }
@@ -1217,7 +1229,26 @@ object AggregateUtil {
             }
 
           case _: SqlSumEmptyIsZeroAggFunction =>
-            if (needRetraction) {
+            if (isDistinct) {
+              aggregates(index) = sqlTypeName match {
+                case TINYINT =>
+                  new ByteSum0WithDistinctAggFunction
+                case SMALLINT =>
+                  new ShortSum0WithDistinctAggFunction
+                case INTEGER =>
+                  new IntSum0WithDistinctAggFunction
+                case BIGINT =>
+                  new LongSum0WithDistinctAggFunction
+                case FLOAT =>
+                  new FloatSum0WithDistinctAggFunction
+                case DOUBLE =>
+                  new DoubleSum0WithDistinctAggFunction
+                case DECIMAL =>
+                  new DecimalSum0WithDistinctAggFunction
+                case sqlType: SqlTypeName =>
+                  throw new TableException(s"Sum0 aggregate does no support type: '$sqlType'")
+              }
+            } else if (needRetraction) {
               aggregates(index) = sqlTypeName match {
                 case TINYINT =>
                   new ByteSum0WithRetractAggFunction
@@ -1233,25 +1264,6 @@ object AggregateUtil {
                   new DoubleSum0WithRetractAggFunction
                 case DECIMAL =>
                   new DecimalSum0WithRetractAggFunction
-                case sqlType: SqlTypeName =>
-                  throw new TableException(s"Sum0 aggregate does no support type: '$sqlType'")
-              }
-            } else if (isDistinct) {
-              aggregates(index) = sqlTypeName match {
-                case TINYINT =>
-                  new ByteSum0AggFunction
-                case SMALLINT =>
-                  new ShortSum0AggFunction
-                case INTEGER =>
-                  new IntSum0AggFunction
-                case BIGINT =>
-                  new LongSum0AggFunction
-                case FLOAT =>
-                  new FloatSum0AggFunction
-                case DOUBLE =>
-                  new DoubleSum0AggFunction
-                case DECIMAL =>
-                  new DecimalSum0AggFunction
                 case sqlType: SqlTypeName =>
                   throw new TableException(s"Sum0 aggregate does no support type: '$sqlType'")
               }
@@ -1350,35 +1362,6 @@ object AggregateUtil {
                     throw new TableException(
                       s"Min with retract aggregate does no support type: '$sqlType'")
                 }
-              } else if (isDistinct) {
-                sqlTypeName match {
-                  case TINYINT =>
-                    new ByteMinAggFunction
-                  case SMALLINT =>
-                    new ShortMinAggFunction
-                  case INTEGER =>
-                    new IntMinAggFunction
-                  case BIGINT =>
-                    new LongMinAggFunction
-                  case FLOAT =>
-                    new FloatMinAggFunction
-                  case DOUBLE =>
-                    new DoubleMinAggFunction
-                  case DECIMAL =>
-                    new DecimalMinAggFunction
-                  case BOOLEAN =>
-                    new BooleanMinAggFunction
-                  case VARCHAR | CHAR =>
-                    new StringMinAggFunction
-                  case TIMESTAMP =>
-                    new TimestampMinAggFunction
-                  case DATE =>
-                    new DateMinAggFunction
-                  case TIME =>
-                    new TimeMinAggFunction
-                  case sqlType: SqlTypeName =>
-                    throw new TableException(s"Min aggregate does no support type: '$sqlType'")
-                }
               } else {
                 sqlTypeName match {
                   case TINYINT =>
@@ -1439,35 +1422,6 @@ object AggregateUtil {
                   case sqlType: SqlTypeName =>
                     throw new TableException(
                       s"Max with retract aggregate does no support type: '$sqlType'")
-                }
-              } else if (isDistinct) {
-                sqlTypeName match {
-                  case TINYINT =>
-                    new ByteMaxAggFunction
-                  case SMALLINT =>
-                    new ShortMaxAggFunction
-                  case INTEGER =>
-                    new IntMaxAggFunction
-                  case BIGINT =>
-                    new LongMaxAggFunction
-                  case FLOAT =>
-                    new FloatMaxAggFunction
-                  case DOUBLE =>
-                    new DoubleMaxAggFunction
-                  case DECIMAL =>
-                    new DecimalMaxAggFunction
-                  case BOOLEAN =>
-                    new BooleanMaxAggFunction
-                  case VARCHAR | CHAR =>
-                    new StringMaxAggFunction
-                  case TIMESTAMP =>
-                    new TimestampMaxAggFunction
-                  case DATE =>
-                    new DateMaxAggFunction
-                  case TIME =>
-                    new TimeMaxAggFunction
-                  case sqlType: SqlTypeName =>
-                    throw new TableException(s"Max aggregate does no support type: '$sqlType'")
                 }
               } else {
                 sqlTypeName match {
