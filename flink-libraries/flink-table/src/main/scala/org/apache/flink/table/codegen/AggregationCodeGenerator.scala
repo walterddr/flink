@@ -77,7 +77,7 @@ class AggregationCodeGenerator(
     * @param aggMapping  The mapping of aggregates to output fields
     * @param distinctAggs The mapping of aggregate to distinct filter DataViewSpec for each input
     *                     field.
-    * @param stateBackendDistinct a flag to indicate if distinct filter uses state backend.
+    * @param isStateBackedDataViews a flag to indicate if distinct filter uses state backend.
     * @param partialResults A flag defining whether final or partial results (accumulators) are set
     *                       to the output row.
     * @param fwdMapping  The mapping of input fields to output fields
@@ -98,7 +98,7 @@ class AggregationCodeGenerator(
       aggFields: Array[Array[Int]],
       aggMapping: Array[Int],
       distinctAggs: Array[Seq[DataViewSpec[_]]],
-      stateBackendDistinct: Boolean,
+      isStateBackedDataViews: Boolean,
       partialResults: Boolean,
       fwdMapping: Array[Int],
       mergeMapping: Option[Array[Int]],
@@ -228,14 +228,16 @@ class AggregationCodeGenerator(
       val descMapping: Map[String, StateDescriptor[_, _]] = distinctAggs
         .flatMap(specs => specs.map(s => (s.stateId, s.toStateDescriptor)))
         .toMap[String, StateDescriptor[_ <: State, _]]
-      for (i <- aggs.indices) yield {
-        for (spec <- distinctAggs(i)) {
-          // Check if stat descriptor exists.
-          val desc: StateDescriptor[_, _] = descMapping.getOrElse(spec.stateId,
-            throw new CodeGenException(
-              s"Can not find DataView for distinct filter in accumulator by id: ${spec.stateId}"))
+      if (isStateBackedDataViews) {
+        for (i <- aggs.indices) yield {
+          for (spec <- distinctAggs(i)) {
+            // Check if stat descriptor exists.
+            val desc: StateDescriptor[_, _] = descMapping.getOrElse(spec.stateId,
+              throw new CodeGenException(
+                s"Can not find DataView for distinct filter in accumulator by id: ${spec.stateId}"))
 
-          addReusableDataView(spec, desc, i)
+            addReusableDataView(spec, desc, i)
+          }
         }
       }
     }
@@ -334,7 +336,7 @@ class AggregationCodeGenerator(
     }
 
     def genDistinctDataViewFieldSetter(str: String, i: Int): String = {
-      if (distinctAggs(i).nonEmpty) {
+      if (isStateBackedDataViews && distinctAggs(i).nonEmpty) {
         genDataViewFieldSetter(distinctAggs(i), str, i)
       } else {
         ""
@@ -611,11 +613,11 @@ class AggregationCodeGenerator(
                |    $distinctAccType aDistinctAcc$i = ($distinctAccType) a.getField($i);
                |    $distinctAccType bDistinctAcc$i = ($distinctAccType) b.getField(${mapping(i)});
                |    java.util.Iterator<java.util.Map.Entry> mergeIt$i =
-               |        bDistinctAcc$i.mapView.iterator();
+               |        bDistinctAcc$i.elements().iterator();
                |    while (mergeIt$i.hasNext()) {
-               |      java.util.Map.Entry entry = mergeIt$i.next();
+               |      java.util.Map.Entry entry = (java.util.Map.Entry) mergeIt$i.next();
                |      Object k = entry.getKey();
-               |      Integer v = entry.getValue();
+               |      Integer v = (Integer) entry.getValue();
                |      if (aDistinctAcc$i.add(k, v)) {
                |        ${accTypes(i)} aAcc$i = (${accTypes(i)}) aDistinctAcc$i.getRealAcc();
                |        ${aggs(i)}.accumulate(aAcc$i, k);

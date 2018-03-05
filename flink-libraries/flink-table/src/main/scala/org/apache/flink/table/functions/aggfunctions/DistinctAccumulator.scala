@@ -18,15 +18,24 @@
 
 package org.apache.flink.table.functions.aggfunctions
 
+import java.lang.{Iterable => JIterable}
+import java.util.{Map => JMap}
 import org.apache.flink.table.api.dataview.MapView
 
-class DistinctAccumulator[E, ACC] (var realAcc: ACC, var mapView: MapView[E, Integer]) {
+/**
+  * The base class for accumulator wrapper when applying distinct aggregation.
+  * @param realAcc the actual accumulator which gets invoke after distinct filter.
+  * @param mapView the [[MapView]] element used to store the distinct filter hash map.
+  * @tparam E the element type for the distinct filter hash map.
+  * @tparam ACC the accumulator type for the realAcc.
+  */
+class DistinctAccumulator[E, ACC](var realAcc: ACC, var mapView: MapView[E, Integer]) {
   def this() {
-    this(null.asInstanceOf[ACC], null)
+    this(null.asInstanceOf[ACC], new MapView[E, Integer]())
   }
 
   def this(realAcc: ACC) {
-    this(realAcc, null)
+    this(realAcc, new MapView[E, Integer]())
   }
 
   def getRealAcc: ACC = realAcc
@@ -85,5 +94,9 @@ class DistinctAccumulator[E, ACC] (var realAcc: ACC, var mapView: MapView[E, Int
 
   def reset(): Unit = {
     mapView.clear()
+  }
+
+  def elements(): JIterable[JMap.Entry[E, Integer]] = {
+    mapView.map.entrySet()
   }
 }
