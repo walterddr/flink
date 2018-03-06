@@ -260,4 +260,112 @@ class GroupWindowTest extends TableTestBase {
 
     streamUtil.verifySql(sql, expected)
   }
+
+  @Test
+  def testDistinctAggregateOnTumbleWindow(): Unit = {
+    val util = streamTestUtil()
+    util.addTable[(Int, String, Long)]("MyTable", 'a, 'b, 'c, 'rowtime.rowtime)
+
+    val sqlQuery = "SELECT COUNT(DISTINCT a), " +
+      "  SUM(a) " +
+      "FROM MyTable " +
+      "GROUP BY TUMBLE(rowtime, INTERVAL '15' MINUTE) "
+
+    val expected = unaryNode(
+      "DataStreamGroupWindowAggregate",
+      unaryNode(
+        "DataStreamCalc",
+        streamTableNode(0),
+        term("select", "rowtime", "a")
+      ),
+      term("window", TumblingGroupWindow('w$, 'rowtime, 900000.millis)),
+      term("select", "COUNT(DISTINCT a) AS EXPR$0", "SUM(a) AS EXPR$1")
+    )
+
+    util.verifySql(sqlQuery, expected)
+  }
+
+  @Test
+  def testMultiDistinctAggregateSameFieldOnHopWindow(): Unit = {
+    val util = streamTestUtil()
+    util.addTable[(Int, String, Long)]("MyTable", 'a, 'b, 'c, 'rowtime.rowtime)
+
+    val sqlQuery = "SELECT COUNT(DISTINCT a), " +
+      "  SUM(DISTINCT a), " +
+      "  MAX(DISTINCT a) " +
+      "FROM MyTable " +
+      "GROUP BY HOP(rowtime, INTERVAL '15' MINUTE, INTERVAL '1' HOUR) "
+
+    val expected = unaryNode(
+      "DataStreamGroupWindowAggregate",
+      unaryNode(
+        "DataStreamCalc",
+        streamTableNode(0),
+        term("select", "rowtime", "a")
+      ),
+      term("window", SlidingGroupWindow('w$, 'rowtime, 3600000.millis, 900000.millis)),
+      term("select", "COUNT(DISTINCT a) AS EXPR$0", "SUM(DISTINCT a) AS EXPR$1",
+        "MAX(DISTINCT a) AS EXPR$2")
+    )
+
+    util.verifySql(sqlQuery, expected)
+  }
+
+  @Test
+  def testDistinctAggregateWithGroupingOnSessionWindow(): Unit = {
+    val util = streamTestUtil()
+    util.addTable[(Int, String, Long)]("MyTable", 'a, 'b, 'c, 'rowtime.rowtime)
+
+    val sqlQuery = "SELECT a, " +
+      "  COUNT(a), " +
+      "  SUM(DISTINCT c) " +
+      "FROM MyTable " +
+      "GROUP BY a, SESSION(rowtime, INTERVAL '15' MINUTE) "
+
+    val expected = unaryNode(
+      "DataStreamGroupWindowAggregate",
+      unaryNode(
+        "DataStreamCalc",
+        streamTableNode(0),
+        term("select", "a", "rowtime", "c")
+      ),
+      term("groupBy", "a"),
+      term("window", SessionGroupWindow('w$, 'rowtime, 900000.millis)),
+      term("select", "a", "COUNT(a) AS EXPR$1", "SUM(DISTINCT c) AS EXPR$2")
+    )
+
+    util.verifySql(sqlQuery, expected)
+  }
+
+  @Test
+  def testDistinctAggregateWithNonDistinctAndGrouping(): Unit = {
+    val util = streamTestUtil()
+    util.addTable[(Int, String, Long)]("MyTable", 'a, 'b, 'c, 'rowtime.rowtime)
+
+    val sqlQuery = "SELECT a, " +
+      "  COUNT(*), " +
+      "  SUM(DISTINCT c), " +
+      "  COUNT(DISTINCT b), " +
+      "  SUM(c), " +
+      "  COUNT(b) " +
+      "FROM MyTable " +
+      "GROUP BY a, TUMBLE(rowtime, INTERVAL '15' MINUTE) "
+
+    val expected = unaryNode(
+      "DataStreamGroupWindowAggregate",
+      streamTableNode(0),
+      term("groupBy", "a"),
+      term("window", TumblingGroupWindow('w$, 'rowtime, 900000.millis)),
+      term("select",
+        "a",
+        "COUNT(*) AS EXPR$1",
+        "SUM(DISTINCT c) AS EXPR$2",
+        "COUNT(DISTINCT b) AS EXPR$3",
+        "SUM(c) AS EXPR$4",
+        "COUNT(b) AS EXPR$5"
+      )
+    )
+
+    util.verifySql(sqlQuery, expected)
+  }
 }
