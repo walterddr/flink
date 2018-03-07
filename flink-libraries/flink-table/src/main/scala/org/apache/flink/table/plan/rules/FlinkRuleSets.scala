@@ -122,6 +122,7 @@ object FlinkRuleSets {
 
     // translate to flink logical rel nodes
     FlinkLogicalAggregate.CONVERTER,
+    FlinkLogicalAggregate.DISTINCT_CONVERTER,
     FlinkLogicalWindowAggregate.CONVERTER,
     FlinkLogicalOverWindow.CONVERTER,
     FlinkLogicalCalc.CONVERTER,
@@ -182,6 +183,7 @@ object FlinkRuleSets {
     * RuleSet to normalize plans for stream / DataStream execution
     */
   val DATASTREAM_NORM_RULES: RuleSet = RuleSets.ofList(
+    DataStreamLogicalDistinctAggregateRule.INSTANCE,
     // Transform window to LogicalWindowAggregate
     DataStreamLogicalWindowAggregateRule.INSTANCE,
     WindowPropertiesRule.INSTANCE,

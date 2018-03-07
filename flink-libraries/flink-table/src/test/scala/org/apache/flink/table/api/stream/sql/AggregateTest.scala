@@ -39,6 +39,28 @@ class AggregateTest extends TableTestBase {
     "MyTable", 'a, 'b, 'c, 'proctime.proctime, 'rowtime.rowtime)
 
   @Test
+  def testDistinctGroupbyWithoutWindow() = {
+    val sql = "SELECT COUNT(DISTINCT a) FROM MyTable GROUP BY b"
+
+    val expected =
+      unaryNode(
+        "DataStreamCalc",
+        unaryNode(
+          "DataStreamGroupAggregate",
+          unaryNode(
+            "DataStreamCalc",
+            streamTableNode(0),
+            term("select", "b", "a")
+          ),
+          term("groupBy", "b"),
+          term("select", "b", "COUNT(DISTINCT a) AS EXPR$0")
+        ),
+        term("select", "EXPR$0")
+      )
+    streamUtil.verifySql(sql, expected)
+  }
+
+  @Test
   def testGroupbyWithoutWindow() = {
     val sql = "SELECT COUNT(a) FROM MyTable GROUP BY b"
 

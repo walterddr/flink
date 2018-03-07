@@ -28,6 +28,7 @@ import org.apache.calcite.rel.logical.LogicalAggregate
 import org.apache.calcite.rel.metadata.RelMetadataQuery
 import org.apache.calcite.sql.SqlKind
 import org.apache.calcite.util.ImmutableBitSet
+import org.apache.flink.table.plan.logical.rel.LogicalDistinctAggregate
 import org.apache.flink.table.plan.nodes.FlinkConventions
 
 import scala.collection.JavaConversions._
@@ -98,6 +99,39 @@ private class FlinkLogicalAggregateConverter
   }
 }
 
+private class FlinkLogicalDistinctAggregateConverter
+  extends ConverterRule(
+    classOf[LogicalDistinctAggregate],
+    Convention.NONE,
+    FlinkConventions.LOGICAL,
+    "FlinkLogicalDistinctAggregateConverter") {
+
+  override def matches(call: RelOptRuleCall): Boolean = {
+    val agg = call.rel(0).asInstanceOf[LogicalDistinctAggregate]
+
+    agg.getAggCallList.map(_.getAggregation.getKind).forall {
+      case SqlKind.STDDEV_POP | SqlKind.STDDEV_SAMP | SqlKind.VAR_POP | SqlKind.VAR_SAMP => false
+      case _ => true
+    }
+  }
+
+  override def convert(rel: RelNode): RelNode = {
+    val agg = rel.asInstanceOf[LogicalDistinctAggregate]
+    val traitSet = rel.getTraitSet.replace(FlinkConventions.LOGICAL)
+    val newInput = RelOptRule.convert(agg.getInput, FlinkConventions.LOGICAL)
+
+    new FlinkLogicalAggregate(
+      rel.getCluster,
+      traitSet,
+      newInput,
+      agg.indicator,
+      agg.getGroupSet,
+      agg.getGroupSets,
+      agg.getAggCallList)
+  }
+}
+
 object FlinkLogicalAggregate {
   val CONVERTER: ConverterRule = new FlinkLogicalAggregateConverter()
+  val DISTINCT_CONVERTER: ConverterRule = new FlinkLogicalDistinctAggregateConverter()
 }
