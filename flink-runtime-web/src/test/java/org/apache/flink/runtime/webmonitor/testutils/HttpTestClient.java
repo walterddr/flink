@@ -19,6 +19,7 @@
 package org.apache.flink.runtime.webmonitor.testutils;
 
 import org.apache.flink.shaded.netty4.io.netty.bootstrap.Bootstrap;
+import org.apache.flink.shaded.netty4.io.netty.buffer.ByteBuf;
 import org.apache.flink.shaded.netty4.io.netty.channel.Channel;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelFuture;
 import org.apache.flink.shaded.netty4.io.netty.channel.ChannelHandler;
@@ -189,18 +190,52 @@ public class HttpTestClient implements AutoCloseable {
 	 * http://$host:$host/$path.
 	 *
 	 * @param path The $path to PATCH (http://$host:$host/$path)
+	 * @param payload The request content to be attached, which should be wrapped in byte buffer by
+	 *                {@link org.apache.flink.shaded.netty4.io.netty.buffer.Unpooled}.
 	 */
-	public void sendPatchRequest(String path, Duration timeout) throws TimeoutException, InterruptedException {
+	public void sendPatchRequest(String path, ByteBuf payload, Duration timeout) throws TimeoutException, InterruptedException {
 		if (!path.startsWith("/")) {
 			path = "/" + path;
 		}
 
-		HttpRequest getRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
+		DefaultFullHttpRequest patchRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
 			HttpMethod.PATCH, path);
-		getRequest.headers().set(HttpHeaders.Names.HOST, host);
-		getRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+		patchRequest.headers().set(HttpHeaders.Names.HOST, host);
+		patchRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
 
-		sendRequest(getRequest, timeout);
+		if (payload != null) {
+			patchRequest.content().clear().writeBytes(payload);
+		}
+
+		sendRequest(patchRequest, timeout);
+	}
+
+	/**
+	 * Send a simple POST request to the given path. You only specify the $path part of
+	 * http://$host:host/$path.
+	 * If payload is required, it should be passed in as a byte array.
+	 *
+	 * @param path The $path to POST (http://$host:$host/$path)
+	 * @param payload The request content to be attached, which should be wrapped in byte buffer by
+	 *                {@link org.apache.flink.shaded.netty4.io.netty.buffer.Unpooled}.
+	 */
+	public void sendPostRequest(String path, ByteBuf payload, Duration timeout) throws TimeoutException, InterruptedException {
+		if (!path.startsWith("/")) {
+			path = "/" + path;
+		}
+
+		DefaultFullHttpRequest postRequest = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1,
+			HttpMethod.POST, path);
+		postRequest.headers().set(HttpHeaders.Names.HOST, host);
+		postRequest.headers().set(HttpHeaders.Names.CONNECTION, HttpHeaders.Values.CLOSE);
+
+		if (payload != null) {
+			postRequest.headers().add(HttpHeaders.Names.CONTENT_TYPE, "application/json");
+			postRequest.headers().set(HttpHeaders.Names.CONTENT_LENGTH, payload.readableBytes());
+			postRequest.content().clear().writeBytes(payload);
+		}
+
+		sendRequest(postRequest, timeout);
 	}
 
 	/**

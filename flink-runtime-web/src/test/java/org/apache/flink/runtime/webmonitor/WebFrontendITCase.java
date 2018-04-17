@@ -263,7 +263,7 @@ public class WebFrontendITCase extends TestLogger {
 
 		try (HttpTestClient client = new HttpTestClient("localhost", getRestPort())) {
 			// cancel the job
-			client.sendPatchRequest("/jobs/" + jid + "/", getTimeLeft(deadline));
+			client.sendPatchRequest("/jobs/" + jid + "/", null, getTimeLeft(deadline));
 			HttpTestClient.SimpleHttpResponse response = client.getNextResponse(getTimeLeft(deadline));
 
 			assertEquals(HttpResponseStatus.ACCEPTED, response.getStatus());
