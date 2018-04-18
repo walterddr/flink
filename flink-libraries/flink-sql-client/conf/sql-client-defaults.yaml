@@ -25,6 +25,21 @@
 
 
 #==============================================================================
+# Data Catalogs
+#==============================================================================
+
+# Define external catalog information here. See the Table API & SQL documentation,
+#   specifically external catalog section
+
+catalogs: [] # empty list
+# A typical data catalog definition looks like:
+# - name: ...
+#   catalog-type: [HCatalog, AvroCatalog, ? extends ExternalCatalog.class]
+#   datastore-type: [? batch, ? streaming]
+#   connection: ...
+#   credentials: ...
+
+#==============================================================================
 # Table Sources & Sinks
 #==============================================================================
 
