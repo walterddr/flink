@@ -37,6 +37,8 @@ class MockTableEnvironment extends TableEnvironment(new TableConfig) {
 
   override protected def getBuiltInNormRuleSet: RuleSet = ???
 
+  override protected def getBuiltInLogicalOptRuleSet: RuleSet = ???
+
   override protected def getBuiltInPhysicalOptRuleSet: RuleSet = ???
 
   override def registerTableSink(

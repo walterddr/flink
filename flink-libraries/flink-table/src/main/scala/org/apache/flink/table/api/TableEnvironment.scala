@@ -224,9 +224,7 @@ abstract class TableEnvironment(val config: TableConfig) {
   /**
     * Returns the built-in logical optimization rules that are defined by the environment.
     */
-  protected def getBuiltInLogicalOptRuleSet: RuleSet = {
-    FlinkRuleSets.LOGICAL_OPT_RULES
-  }
+  protected def getBuiltInLogicalOptRuleSet: RuleSet
 
   /**
     * Returns the built-in physical optimization rules that are defined by the environment.

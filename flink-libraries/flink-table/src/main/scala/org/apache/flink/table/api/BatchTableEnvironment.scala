@@ -325,6 +325,11 @@ abstract class BatchTableEnvironment(
   protected def getBuiltInNormRuleSet: RuleSet = FlinkRuleSets.DATASET_NORM_RULES
 
   /**
+    * Returns the built-in logical optimization rules that are defined by the environment.
+    */
+  protected def getBuiltInLogicalOptRuleSet: RuleSet = FlinkRuleSets.DATASET_LOGICAL_OPT_RULES
+
+  /**
     * Returns the built-in optimization rules that are defined by the environment.
     */
   protected def getBuiltInPhysicalOptRuleSet: RuleSet = FlinkRuleSets.DATASET_OPT_RULES

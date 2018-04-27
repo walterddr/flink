@@ -18,6 +18,8 @@
 
 package org.apache.flink.table.plan.rules
 
+import java.lang.{Iterable => JIterable}
+import org.apache.calcite.plan.RelOptRule
 import org.apache.calcite.rel.core.RelFactories
 import org.apache.calcite.rel.rules._
 import org.apache.calcite.tools.{RuleSet, RuleSets}
@@ -44,7 +46,7 @@ object FlinkRuleSets {
     TableScanRule.INSTANCE,
     EnumerableToLogicalTableScan.INSTANCE)
 
-  val LOGICAL_OPT_RULES: RuleSet = RuleSets.ofList(
+  val LOGICAL_OPT_RULES = List(
 
     // push a filter into a join
     FilterJoinRule.FILTER_ON_JOIN,
@@ -120,9 +122,6 @@ object FlinkRuleSets {
 
     // unnest rule
     LogicalUnnestRule.INSTANCE,
-
-    // translate to flink logical rel nodes
-    FlinkLogicalAggregate.CONVERTER,
     FlinkLogicalWindowAggregate.CONVERTER,
     FlinkLogicalOverWindow.CONVERTER,
     FlinkLogicalCalc.CONVERTER,
@@ -138,6 +137,15 @@ object FlinkRuleSets {
     FlinkLogicalNativeTableScan.CONVERTER
   )
 
+  val DATASET_LOGICAL_OPT_RULES: RuleSet = RuleSets.ofList(
+    LOGICAL_OPT_RULES :+
+      FlinkLogicalAggregate.DATASET_CONVERTER: _*
+  )
+
+  val DATASTREAM_LOGICAL_OPT_RULES: RuleSet = RuleSets.ofList(
+    LOGICAL_OPT_RULES :+
+      FlinkLogicalAggregate.DATASTREAM_CONVERTER: _*
+  )
 
   /**
     * RuleSet to normalize plans for batch / DataSet execution

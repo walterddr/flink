@@ -168,7 +168,7 @@ class CorrelateTest extends TableTestBase {
   def testCorrelateWithMultiFilterAndWithoutCalcMergeRules(): Unit = {
     val util = batchTestUtil()
 
-    val logicalRuleSet = FlinkRuleSets.LOGICAL_OPT_RULES.filter {
+    val logicalRuleSet = FlinkRuleSets.DATASET_LOGICAL_OPT_RULES.filter {
         case CalcMergeRule.INSTANCE => false
         case FilterCalcMergeRule.INSTANCE => false
         case ProjectCalcMergeRule.INSTANCE => false

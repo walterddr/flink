@@ -62,7 +62,7 @@ class FlinkLogicalAggregate(
   }
 }
 
-private class FlinkLogicalAggregateConverter
+private class FlinkDataSetLogicalAggregateConverter
   extends ConverterRule(
     classOf[LogicalAggregate],
     Convention.NONE,
@@ -101,6 +101,43 @@ private class FlinkLogicalAggregateConverter
   }
 }
 
+private class FlinkDataStreamLogicalAggregateConverter
+  extends ConverterRule(
+    classOf[LogicalAggregate],
+    Convention.NONE,
+    FlinkConventions.LOGICAL,
+    "FlinkLogicalAggregateConverter") {
+
+  override def matches(call: RelOptRuleCall): Boolean = {
+    val agg = call.rel(0).asInstanceOf[LogicalAggregate]
+
+    // we do not support these functions natively
+    // they have to be converted using the AggregateReduceFunctionsRule
+    val supported = agg.getAggCallList.asScala.map(_.getAggregation.getKind).forall {
+      case SqlKind.STDDEV_POP | SqlKind.STDDEV_SAMP | SqlKind.VAR_POP | SqlKind.VAR_SAMP => false
+      case _ => true
+    }
+
+    supported
+  }
+
+  override def convert(rel: RelNode): RelNode = {
+    val agg = rel.asInstanceOf[LogicalAggregate]
+    val traitSet = rel.getTraitSet.replace(FlinkConventions.LOGICAL)
+    val newInput = RelOptRule.convert(agg.getInput, FlinkConventions.LOGICAL)
+
+    new FlinkLogicalAggregate(
+      rel.getCluster,
+      traitSet,
+      newInput,
+      agg.indicator,
+      agg.getGroupSet,
+      agg.getGroupSets,
+      agg.getAggCallList)
+  }
+}
+
 object FlinkLogicalAggregate {
-  val CONVERTER: ConverterRule = new FlinkLogicalAggregateConverter()
+  val DATASET_CONVERTER: ConverterRule = new FlinkDataSetLogicalAggregateConverter()
+  val DATASTREAM_CONVERTER: ConverterRule = new FlinkDataStreamLogicalAggregateConverter()
 }
