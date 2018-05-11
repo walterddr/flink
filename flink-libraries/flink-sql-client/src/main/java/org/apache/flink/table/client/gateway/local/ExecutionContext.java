@@ -45,7 +45,10 @@ import org.apache.flink.table.client.config.Deployment;
 import org.apache.flink.table.client.config.Environment;
 import org.apache.flink.table.client.gateway.SessionContext;
 import org.apache.flink.table.client.gateway.SqlExecutionException;
+import org.apache.flink.table.descriptors.TableSinkDescriptor;
 import org.apache.flink.table.descriptors.TableSourceDescriptor;
+import org.apache.flink.table.sinks.TableSink;
+import org.apache.flink.table.sinks.TableSinkFactoryService;
 import org.apache.flink.table.sources.TableSource;
 import org.apache.flink.table.sources.TableSourceFactoryService;
 import org.apache.flink.util.FlinkException;
@@ -72,6 +75,7 @@ public class ExecutionContext<T> {
 	private final List<URL> dependencies;
 	private final ClassLoader classLoader;
 	private final Map<String, TableSource<?>> tableSources;
+	private final Map<String, TableSink<?>> tableSinks;
 	private final Configuration flinkConfig;
 	private final CommandLine commandLine;
 	private final CustomCommandLine<T> activeCommandLine;
@@ -91,13 +95,18 @@ public class ExecutionContext<T> {
 			dependencies.toArray(new URL[dependencies.size()]),
 			this.getClass().getClassLoader());
 
-		// create table sources
+		// create tables
 		tableSources = new HashMap<>();
+		tableSinks = new HashMap<>();
 		mergedEnv.getTables().forEach((name, descriptor) -> {
 			if (descriptor instanceof TableSourceDescriptor) {
 				TableSource<?> tableSource = TableSourceFactoryService.findAndCreateTableSource(
 						(TableSourceDescriptor) descriptor, classLoader);
 				tableSources.put(name, tableSource);
+			} else if (descriptor instanceof TableSinkDescriptor) {
+				TableSink<?> tableSink = TableSinkFactoryService.findAndCreateTableSink(
+						(TableSinkDescriptor) descriptor, classLoader);
+				tableSinks.put(name, tableSink);
 			}
 		});
 

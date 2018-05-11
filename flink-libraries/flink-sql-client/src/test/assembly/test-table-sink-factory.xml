@@ -30,17 +30,17 @@ under the License.
 			<outputDirectory>/</outputDirectory>
 			<!-- modify/add include to match your package(s) -->
 			<includes>
-				<include>org/apache/flink/table/client/gateway/utils/TestTableSourceFactory.class</include>
-				<include>org/apache/flink/table/client/gateway/utils/TestTableSourceFactory$*.class</include>
+				<include>org/apache/flink/table/client/gateway/utils/TestTableSinkFactory.class</include>
+				<include>org/apache/flink/table/client/gateway/utils/TestTableSinkFactory$*.class</include>
 			</includes>
 		</fileSet>
 	</fileSets>
 	<files>
 		<!-- Create META-INF/services -->
 		<file>
-			<source>src/test/resources/test-source-factory-services-file</source>
+			<source>src/test/resources/test-sink-factory-services-file</source>
 			<outputDirectory>META-INF/services</outputDirectory>
-			<destName>org.apache.flink.table.sources.TableSourceFactory</destName>
+			<destName>org.apache.flink.table.sinks.TableSinkFactory</destName>
 			<fileMode>0755</fileMode>
 		</file>
 	</files>

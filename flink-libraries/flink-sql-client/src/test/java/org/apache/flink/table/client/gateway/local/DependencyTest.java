@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import java.net.URL;
 import java.nio.file.Paths;
-import java.util.Collections;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -43,6 +43,7 @@ public class DependencyTest {
 
 	private static final String FACTORY_ENVIRONMENT_FILE = "test-sql-client-factory.yaml";
 	private static final String TABLE_SOURCE_FACTORY_JAR_FILE = "table-source-factory-test-jar.jar";
+	private static final String TABLE_SINK_FACTORY_JAR_FILE = "table-sink-factory-test-jar.jar";
 
 	@Test
 	public void testTableSourceFactoryDiscovery() throws Exception {
@@ -51,13 +52,17 @@ public class DependencyTest {
 		replaceVars.put("$VAR_0", "test-table-source-factory");
 		replaceVars.put("$VAR_1", "test-property");
 		replaceVars.put("$VAR_2", "test-value");
+		replaceVars.put("$VAR_3", "test-table-sink-factory");
+		replaceVars.put("$VAR_4", "test-property");
+		replaceVars.put("$VAR_5", "test-value");
 		final Environment env = EnvironmentFileUtil.parseModified(FACTORY_ENVIRONMENT_FILE, replaceVars);
 
 		// create executor with dependencies
-		final URL dependency = Paths.get("target", TABLE_SOURCE_FACTORY_JAR_FILE).toUri().toURL();
+		final URL sourceFactory = Paths.get("target", TABLE_SOURCE_FACTORY_JAR_FILE).toUri().toURL();
+		final URL sinkFactory = Paths.get("target", TABLE_SINK_FACTORY_JAR_FILE).toUri().toURL();
 		final LocalExecutor executor = new LocalExecutor(
 			env,
-			Collections.singletonList(dependency),
+			Arrays.asList(sourceFactory, sinkFactory),
 			new Configuration(),
 			new DefaultCLI(new Configuration()));
 

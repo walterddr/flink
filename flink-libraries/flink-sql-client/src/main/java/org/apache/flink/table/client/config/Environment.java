@@ -62,16 +62,26 @@ public class Environment {
 			if (!config.containsKey(TableDescriptorValidator.TABLE_TYPE())) {
 				throw new SqlClientException("The 'type' attribute of a table is missing.");
 			}
-			if (config.get(TableDescriptorValidator.TABLE_TYPE()).equals(TableDescriptorValidator.TABLE_TYPE_VALUE_SOURCE())) {
+			String tableType = (String) config.get(TableDescriptorValidator.TABLE_TYPE());
+			if (TableDescriptorValidator.TABLE_TYPE_VALUE_SOURCE().equals(tableType)) {
 				config.remove(TableDescriptorValidator.TABLE_TYPE());
 				final Source s = Source.create(config);
 				if (this.tables.containsKey(s.getName())) {
-					throw new SqlClientException("Duplicate source name '" + s + "'.");
+					throw new SqlClientException("Duplicate source/sink name '" + s + "'. "
+						+ "'type' should be 'both' if used as both source and sink");
+				}
+				this.tables.put(s.getName(), s);
+			} else if (TableDescriptorValidator.TABLE_TYPE_VALUE_SINK().equals(tableType)) {
+				config.remove(TableDescriptorValidator.TABLE_TYPE());
+				final Sink s = Sink.create(config);
+				if (this.tables.containsKey(s.getName())) {
+					throw new SqlClientException("Duplicate source/sink name '" + s + "'. "
+						+ "'type' should be 'both' if used as both source and sink");
 				}
 				this.tables.put(s.getName(), s);
 			} else {
 				throw new SqlClientException(
-						"Invalid table 'type' attribute value, only 'source' is supported");
+						"Invalid table 'type' attribute value!");
 			}
 		});
 	}

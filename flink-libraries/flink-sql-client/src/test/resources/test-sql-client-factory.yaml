@@ -42,6 +42,19 @@ tables:
       type: "$VAR_0"
       $VAR_1: "$VAR_2"
 
+  - name: TableNumber2
+    type: sink
+    schema:
+      - name: IntegerField1
+        type: INT
+      - name: StringField1
+        type: VARCHAR
+      - name: rowtimeField
+        type: TIMESTAMP
+    connector:
+      type: "$VAR_3"
+      $VAR_4: "$VAR_5"
+
 execution:
   type: streaming
   parallelism: 1
