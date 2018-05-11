@@ -143,41 +143,47 @@ case class CatalogAlreadyExistException(
 }
 
 /**
-  * Exception for not finding a [[org.apache.flink.table.sources.TableSourceFactory]] for the
-  * given properties.
+  * Exception for not finding a [[org.apache.flink.table.sources.TableSourceFactory]] or
+  * [[org.apache.flink.table.sinks.TableSinkFactory]] for the
+  * given type and properties.
   *
-  * @param properties properties that describe the table source
+  * @param tableType type of the table
+  * @param properties properties that describe the table source or sink
   * @param cause the cause
   */
-case class NoMatchingTableSourceException(
+case class NoMatchingTableException(
+    tableType: String,
     properties: Map[String, String],
     cause: Throwable)
     extends RuntimeException(
-      s"Could not find a table source factory in the classpath satisfying the " +
+      s"Could not find a table $tableType factory in the classpath satisfying the " +
         s"following properties: \n" +
         s"${DescriptorProperties.toString(properties)}",
       cause) {
 
-  def this(properties: Map[String, String]) = this(properties, null)
+  def this(tableType: String, properties: Map[String, String]) = this(tableType, properties, null)
 }
 
 /**
-  * Exception for finding more than one [[org.apache.flink.table.sources.TableSourceFactory]] for
-  * the given properties.
+  * Exception for finding more than one [[org.apache.flink.table.sources.TableSourceFactory]] or
+  * [[org.apache.flink.table.sinks.TableSinkFactory]] for the
+  * given type and properties.
   *
-  * @param properties properties that describe the table source
+  * @param tableType type of the table
+  * @param properties properties that describe the table source or sink
   * @param cause the cause
   */
-case class AmbiguousTableSourceException(
+case class AmbiguousTableException(
+    tableType: String,
     properties: Map[String, String],
     cause: Throwable)
     extends RuntimeException(
-      s"More than one table source factory in the classpath satisfying the " +
+      s"More than one table $tableType factory in the classpath satisfying the " +
         s"following properties: \n" +
         s"${DescriptorProperties.toString(properties)}",
       cause) {
 
-  def this(properties: Map[String, String]) = this(properties, null)
+  def this(tableType: String, properties: Map[String, String]) = this(tableType, properties, null)
 }
 
 /**

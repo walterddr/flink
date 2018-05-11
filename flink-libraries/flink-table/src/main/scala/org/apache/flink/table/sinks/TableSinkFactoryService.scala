@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table.sources
+package org.apache.flink.table.sinks
 
 import java.util.{ServiceConfigurationError, ServiceLoader}
 
@@ -25,48 +25,48 @@ import org.apache.flink.table.descriptors.ConnectorDescriptorValidator.CONNECTOR
 import org.apache.flink.table.descriptors.FormatDescriptorValidator.FORMAT_PROPERTY_VERSION
 import org.apache.flink.table.descriptors.MetadataValidator.METADATA_PROPERTY_VERSION
 import org.apache.flink.table.descriptors.StatisticsValidator.STATISTICS_PROPERTY_VERSION
-import org.apache.flink.table.descriptors._
+import org.apache.flink.table.descriptors.{DescriptorProperties, TableDescriptor}
 import org.apache.flink.table.util.Logging
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 /**
-  * Service provider interface for finding suitable table source factories for the given properties.
+  * Service provider interface for finding suitable table sink factories for the given properties.
   */
-object TableSourceFactoryService extends Logging {
+object TableSinkFactoryService extends Logging {
 
-  private lazy val defaultLoader = ServiceLoader.load(classOf[TableSourceFactory[_]])
+  private lazy val defaultLoader = ServiceLoader.load(classOf[TableSinkFactory[_]])
 
-  def findAndCreateTableSource(descriptor: TableSourceDescriptor): TableSource[_] = {
-    findAndCreateTableSource(descriptor, null)
+  def findAndCreateTableSink(descriptor: TableDescriptor): TableSink[_] = {
+    findAndCreateTableSink(descriptor, null)
   }
 
-  def findAndCreateTableSource(
-      descriptor: TableSourceDescriptor,
+  def findAndCreateTableSink(
+      descriptor: TableDescriptor,
       classLoader: ClassLoader)
-    : TableSource[_] = {
+    : TableSink[_] = {
 
     val properties = new DescriptorProperties()
     descriptor.addProperties(properties)
-    findAndCreateTableSource(properties.asMap.asScala.toMap, classLoader)
+    findAndCreateTableSink(properties.asMap.asScala.toMap, classLoader)
   }
 
-  def findAndCreateTableSource(properties: Map[String, String]): TableSource[_] = {
-    findAndCreateTableSource(properties, null)
+  def findAndCreateTableSink(properties: Map[String, String]): TableSink[_] = {
+    findAndCreateTableSink(properties, null)
   }
 
-  def findAndCreateTableSource(
+  def findAndCreateTableSink(
       properties: Map[String, String],
       classLoader: ClassLoader)
-    : TableSource[_] = {
+    : TableSink[_] = {
 
-    var matchingFactory: Option[(TableSourceFactory[_], Seq[String])] = None
+    var matchingFactory: Option[(TableSinkFactory[_], Seq[String])] = None
     try {
       val iter = if (classLoader == null) {
         defaultLoader.iterator()
       } else {
-        val customLoader = ServiceLoader.load(classOf[TableSourceFactory[_]], classLoader)
+        val customLoader = ServiceLoader.load(classOf[TableSinkFactory[_]], classLoader)
         customLoader.iterator()
       }
       while (iter.hasNext) {
@@ -77,7 +77,7 @@ object TableSourceFactoryService extends Logging {
         } catch {
           case t: Throwable =>
             throw new TableException(
-              s"Table source factory '${factory.getClass.getCanonicalName}' caused an exception.",
+              s"Table sink factory '${factory.getClass.getCanonicalName}' caused an exception.",
               t)
         }
 
@@ -98,21 +98,21 @@ object TableSourceFactoryService extends Logging {
         plainContext.remove(STATISTICS_PROPERTY_VERSION)
 
         // check if required context is met
-        if (plainContext.forall(e => properties.contains(e._1) && properties(e._1).equals(e._2))) {
+        if (plainContext.forall(e => properties.contains(e._1) && properties(e._1) == e._2)) {
           matchingFactory match {
-            case Some(_) => throw new AmbiguousTableException("source", properties)
+            case Some(_) => throw new AmbiguousTableException("sink", properties)
             case None => matchingFactory = Some((factory, requiredContext.keys.toSeq))
           }
         }
       }
     } catch {
       case e: ServiceConfigurationError =>
-        LOG.error("Could not load service provider for table source factories.", e)
-        throw new TableException("Could not load service provider for table source factories.", e)
+        LOG.error("Could not load service provider for table sink factories.", e)
+        throw new TableException("Could not load service provider for table sink factories.", e)
     }
 
     val (factory, context) = matchingFactory
-      .getOrElse(throw new NoMatchingTableException("source", properties))
+      .getOrElse(throw new NoMatchingTableException("sink", properties))
 
     val plainProperties = mutable.ArrayBuffer[String]()
     properties.keys.foreach { k =>
@@ -129,7 +129,7 @@ object TableSourceFactoryService extends Logging {
     } catch {
       case t: Throwable =>
         throw new TableException(
-          s"Table source factory '${factory.getClass.getCanonicalName}' caused an exception.",
+          s"Table sink factory '${factory.getClass.getCanonicalName}' caused an exception.",
           t)
     }
 
@@ -149,13 +149,13 @@ object TableSourceFactoryService extends Logging {
       }
     }
 
-    // create the table source
+    // create the table sink
     try {
       factory.create(properties.asJava)
     } catch {
       case t: Throwable =>
         throw new TableException(
-          s"Table source factory '${factory.getClass.getCanonicalName}' caused an exception.",
+          s"Table sink factory '${factory.getClass.getCanonicalName}' caused an exception.",
           t)
     }
   }

@@ -16,7 +16,7 @@
  * limitations under the License.
  */
 
-package org.apache.flink.table.sources
+package org.apache.flink.table.sinks
 
 import org.apache.flink.table.api.{NoMatchingTableException, TableException, ValidationException}
 import org.apache.flink.table.descriptors.ConnectorDescriptorValidator.{CONNECTOR_PROPERTY_VERSION, CONNECTOR_TYPE}
@@ -26,41 +26,40 @@ import org.junit.Test
 
 import scala.collection.mutable
 
-class TableSourceFactoryServiceTest {
+class TableSinkFactoryServiceTest {
 
   @Test
   def testValidProperties(): Unit = {
     val props = properties()
-    assertTrue(TableSourceFactoryService.findAndCreateTableSource(props.toMap) != null)
+    assertTrue(TableSinkFactoryService.findAndCreateTableSink(props.toMap) != null)
   }
 
   @Test(expected = classOf[NoMatchingTableException])
   def testInvalidContext(): Unit = {
     val props = properties()
     props.put(CONNECTOR_TYPE, "FAIL")
-    TableSourceFactoryService.findAndCreateTableSource(props.toMap)
+    TableSinkFactoryService.findAndCreateTableSink(props.toMap)
   }
 
   @Test
   def testDifferentContextVersion(): Unit = {
     val props = properties()
     props.put(CONNECTOR_PROPERTY_VERSION, "2")
-    // the table source should still be found
-    assertTrue(TableSourceFactoryService.findAndCreateTableSource(props.toMap) != null)
+    assertTrue(TableSinkFactoryService.findAndCreateTableSink(props.toMap) != null)
   }
 
   @Test(expected = classOf[ValidationException])
   def testUnsupportedProperty(): Unit = {
     val props = properties()
     props.put("format.path_new", "/new/path")
-    TableSourceFactoryService.findAndCreateTableSource(props.toMap)
+    TableSinkFactoryService.findAndCreateTableSink(props.toMap)
   }
 
   @Test(expected = classOf[TableException])
   def testFailingFactory(): Unit = {
     val props = properties()
     props.put("failing", "true")
-    TableSourceFactoryService.findAndCreateTableSource(props.toMap)
+    TableSinkFactoryService.findAndCreateTableSink(props.toMap)
   }
 
   private def properties(): mutable.Map[String, String] = {
