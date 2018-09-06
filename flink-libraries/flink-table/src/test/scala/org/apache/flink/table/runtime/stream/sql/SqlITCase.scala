@@ -30,6 +30,7 @@ import org.apache.flink.table.api.scala._
 import org.apache.flink.table.descriptors.{DescriptorProperties, Rowtime, Schema}
 import org.apache.flink.table.expressions.utils.SplitUDF
 import org.apache.flink.table.expressions.utils.Func15
+import org.apache.flink.table.functions.ScalarFunction
 import org.apache.flink.table.runtime.stream.sql.SqlITCase.TimestampAndWatermarkWithOffset
 import org.apache.flink.table.runtime.utils.TimeTestUtil.EventTimeSourceFunction
 import org.apache.flink.table.runtime.utils.{JavaUserDefinedTableFunctions, StreamITCase, StreamTestData, StreamingWithStateTestBase}
@@ -39,6 +40,18 @@ import org.junit.Assert._
 import org.junit._
 
 import scala.collection.mutable
+
+object MyUDF extends ScalarFunction {
+  def eval(x: Int, y: Int): Row = {
+    Row.of(Integer.valueOf(x), Integer.valueOf(y))
+  }
+
+  override def getResultType(signature: Array[Class[_]]): TypeInformation[_] = {
+    val t: Array[TypeInformation[_]] = Array(Types.INT, Types.INT)
+    val f: Array[String] = Array("lat", "lng")
+    new RowTypeInfo(t, f)
+  }
+}
 
 class SqlITCase extends StreamingWithStateTestBase {
 
@@ -52,6 +65,43 @@ class SqlITCase extends StreamingWithStateTestBase {
     (7000L, "7", "Hello World"),
     (8000L, "8", "Hello World"),
     (20000L, "20", "Hello World"))
+
+  @Test
+  def testMyTest(): Unit = {
+
+    val data = List(
+      (1, 1, (12, "45.6")),
+      (2, 2, (12, "45.612")),
+      (3, 2, (13, "41.6")),
+      (4, 3, (14, "45.2136")),
+      (5, 3, (18, "42.6"))
+    )
+
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = TableEnvironment.getTableEnvironment(env)
+    tEnv.registerFunction("MyUDF", MyUDF)
+    StreamITCase.clear
+
+
+    tEnv.registerTable("MyTable",
+      env.fromCollection(data).toTable(tEnv).as('a, 'b, 'c))
+
+    // SQL API throws Exception
+    val result1 = tEnv.sqlQuery("SELECT MyUDF(b, b).lat FROM MyTable").toAppendStream[Row]
+
+    // Table API is perfectly fine
+    val result2 = tEnv.scan("MyTable").select(MyUDF('b, 'b).get("lat")).toAppendStream[Row]
+    result2.addSink(new StreamITCase.StringSink[Row]).setParallelism(1)
+    env.execute()
+
+    val expected = List(
+      "1",
+      "2",
+      "2",
+      "3",
+      "3")
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
 
   @Test
   def testDistinctAggWithMergeOnEventTimeSessionGroupWindow(): Unit = {
