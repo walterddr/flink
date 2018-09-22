@@ -49,6 +49,7 @@ import org.apache.flink.streaming.api.functions.windowing.ReduceApplyProcessWind
 import org.apache.flink.streaming.api.functions.windowing.ReduceApplyWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
+import org.apache.flink.streaming.api.windowing.assigners.AlignedWindowAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.BaseAlignedWindowAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
@@ -56,6 +57,7 @@ import org.apache.flink.streaming.api.windowing.evictors.Evictor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.AlignedWindowOperator;
 import org.apache.flink.streaming.runtime.operators.windowing.EvictingWindowOperator;
 import org.apache.flink.streaming.runtime.operators.windowing.WindowOperator;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalAggregateProcessWindowFunction;
@@ -270,9 +272,9 @@ public class WindowedStream<T, K, W extends Window> {
 
 		//clean the closures
 		function = input.getExecutionEnvironment().clean(function);
-		reduceFunction = input.getExecutionEnvironment().clean(reduceFunction);
+		final ReduceFunction<T> reduceFunc = input.getExecutionEnvironment().clean(reduceFunction);
 
-		final String opName = generateOperatorName(windowAssigner, trigger, evictor, reduceFunction, function);
+		final String opName = generateOperatorName(windowAssigner, trigger, evictor, reduceFunc, function);
 		KeySelector<T, K> keySel = input.getKeySelector();
 
 		OneInputStreamOperator<T, R> operator;
@@ -291,15 +293,34 @@ public class WindowedStream<T, K, W extends Window> {
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
 					stateDesc,
-					new InternalIterableWindowFunction<>(new ReduceApplyWindowFunction<>(reduceFunction, function)),
+					new InternalIterableWindowFunction<>(new ReduceApplyWindowFunction<>(reduceFunc, function)),
 					trigger,
 					evictor,
 					allowedLateness,
 					lateDataOutputTag);
 
+		}  else if (windowAssigner instanceof AlignedWindowAssigner) {
+			AlignedWindowAssigner<? super T, W> alignedWindowAssigner = (AlignedWindowAssigner) windowAssigner;
+			ListStateDescriptor<W> windowStateDesc =
+				new ListStateDescriptor<>("window-slice-mappings", windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()));
+			ReducingStateDescriptor<T> sliceStateDesc = new ReducingStateDescriptor<>("slice-contents",
+				reduceFunc,
+				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
+
+			operator = new AlignedWindowOperator<>(alignedWindowAssigner,
+				windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
+				keySel,
+				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
+				windowStateDesc,
+				sliceStateDesc,
+				new InternalSingleValueWindowFunction<>(function),
+				reduceFunc::reduce,
+				trigger,
+				allowedLateness,
+				lateDataOutputTag);
 		} else {
 			ReducingStateDescriptor<T> stateDesc = new ReducingStateDescriptor<>("window-contents",
-				reduceFunction,
+				reduceFunc,
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 
 			operator =
