@@ -143,7 +143,7 @@ public class MergingWindowSet<W extends Window> {
 	 * happen on the returned representative. This way, we never have to deal with a new window
 	 * that is immediately swallowed up by another window.
 	 *
-	 * <p>If the new window is merged, the {@code MergeFunction} callback arguments also don't
+	 * <p>If the new window is merged, the {@code MergeableFunction} callback arguments also don't
 	 * contain the new window as part of the list of merged windows.
 	 *
 	 * @param newWindow The new {@code Window} to add.
