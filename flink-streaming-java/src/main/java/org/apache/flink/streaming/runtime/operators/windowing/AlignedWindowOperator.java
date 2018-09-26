@@ -20,23 +20,16 @@ package org.apache.flink.streaming.runtime.operators.windowing;
 
 import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.VisibleForTesting;
-import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.state.AppendingState;
 import org.apache.flink.api.common.state.ListState;
-import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.StateDescriptor;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.api.java.tuple.Tuple2;
-import org.apache.flink.api.java.typeutils.runtime.TupleSerializer;
-import org.apache.flink.runtime.state.VoidNamespace;
-import org.apache.flink.runtime.state.VoidNamespaceSerializer;
 import org.apache.flink.runtime.state.internal.InternalAppendingState;
 import org.apache.flink.runtime.state.internal.InternalListState;
 import org.apache.flink.runtime.state.internal.InternalMergingState;
 import org.apache.flink.streaming.api.operators.InternalTimer;
 import org.apache.flink.streaming.api.windowing.assigners.AlignedWindowAssigner;
-import org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
@@ -46,7 +39,6 @@ import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.util.OutputTag;
 
 import java.util.Collection;
-import java.util.Collections;
 
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -123,18 +115,6 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 	}
 
 	@Override
-	public void close() throws Exception {
-		super.close();
-		// evictorContext = null;
-	}
-
-	@Override
-	public void dispose() throws Exception{
-		super.dispose();
-		// evictorContext = null;
-	}
-
-	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
 		final Collection<W> elementWindows = alignedWindowAssigner.assignWindows(
 				element.getValue(), element.getTimestamp(), windowAssignerContext);
@@ -149,6 +129,8 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 		boolean isSkippedElement = true;
 
 		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
+
+		// TODO: add merging support (Although I dont think that's necessary)
 
 		// check if the slice assignment had failed
 		if (elementSlices.size() == 1) {
@@ -170,7 +152,9 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 				isSkippedElement = false;
 
 				windowState.setCurrentNamespace(window);
+				// TODO: This is a hack to determine whether the slice has already been added to the window
 				// append slice only if it was newly created.
+				// TODO: Better detection is definitely needed
 				if (previousSliceState == null) {
 					windowState.add(slice);
 				}
@@ -190,18 +174,18 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 				}
 
 				if (triggerResult.isPurge()) {
+					// TODO: Need a way to purge the slice that no longer maps to any window
+					// for now just purge all slices within the window
 					Iterable<W> slices = windowState.get();
 					for (W sliceElement: slices) {
 						sliceState.setCurrentNamespace(sliceElement);
 						sliceState.clear();
 					}
 					windowState.clear();
-					// TODO: Need a way to purge the slice that no longer maps to any window
-					// for now just purge all slices within the window
 				}
 				registerCleanupTimer(window);
 			}
-			// TODO: register slide cleanup timer
+			// TODO: register slide cleanup timer is needed
 		}
 
 		// side output input event if
@@ -222,8 +206,6 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 
 		triggerContext.key = timer.getKey();
 		triggerContext.window = timer.getNamespace();
-//		evictorContext.key = timer.getKey();
-//		evictorContext.window = timer.getNamespace();
 
 		MergingWindowSet<W> mergingWindows = null;
 
@@ -239,19 +221,19 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 		}
 
 		if (triggerResult.isPurge()) {
+			// TODO: Need a way to purge the slice that no longer maps to any window
+			// for now just purge all slices within the window
 			Iterable<W> slices = windowState.get();
 			for (W sliceElement: slices) {
 				sliceState.setCurrentNamespace(sliceElement);
 				sliceState.clear();
 			}
 			windowState.clear();
-			// TODO: Need a way to purge the slice that no longer maps to any window
-			// for now just purge all slices within the window
 		}
 
 		if (windowAssigner.isEventTime() && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
-			clearAllState(triggerContext.window, windowState, mergingWindows);
 			// TODO slice needs to be clear too.
+			clearAllState(triggerContext.window, windowState, mergingWindows);
 		}
 
 //		if (mergingWindows != null) {
@@ -281,17 +263,18 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 		}
 
 		if (triggerResult.isPurge()) {
+			// TODO: Need a way to purge the slice that no longer maps to any window
+			// for now just purge all slices within the window
 			Iterable<W> slices = windowState.get();
 			for (W sliceElement: slices) {
 				sliceState.setCurrentNamespace(sliceElement);
 				sliceState.clear();
 			}
 			windowState.clear();
-			// TODO: Need a way to purge the slice that no longer maps to any window
-			// for now just purge all slices within the window
 		}
 
 		if (!windowAssigner.isEventTime() && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
+			// TODO slice needs to be clear too.
 			clearAllState(triggerContext.window, windowState, mergingWindows);
 		}
 
@@ -308,8 +291,9 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 		timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp());
 
 		// Pre-process and merge sliceStates
-		// TODO this is problematic since we are directly accessing AggregateFunction
-		// Some type of wrapping is needed here.
+
+		// TODO: this is problematic since we are directly accessing MergeFunction
+		// This requires the MergeFunction to be stateless (e.g. cannot be from a RichFunction
 		ACC mergedContents = null;
 		for (W slice: contents) {
 			sliceState.setCurrentNamespace(slice);
@@ -317,6 +301,8 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 			if (mergedContents == null) {
 				mergedContents = sliceContent;
 			} else {
+				// this merge requires the MergeFunction to never edit the first element.
+				// TODO: Better handling for iterable is needed as merging 2 iterable requires a full scan of elements
 				mergedContents = sliceStateMergingFunction.merge(mergedContents, sliceContent);
 			}
 		}
@@ -358,53 +344,8 @@ public class AlignedWindowOperator<K, IN, ACC, OUT, W extends Window>
 		ACC merge(ACC a, ACC b) throws Exception;
 	}
 
-//	/**
-//	 * {@code EvictorContext} is a utility for handling {@code Evictor} invocations. It can be reused
-//	 * by setting the {@code key} and {@code window} fields. No internal state must be kept in
-//	 * the {@code EvictorContext}.
-//	 */
-//
-//	class EvictorContext implements Evictor.EvictorContext {
-//
-//		protected K key;
-//		protected W window;
-//
-//		public EvictorContext(K key, W window) {
-//			this.key = key;
-//			this.window = window;
-//		}
-//
-//		@Override
-//		public long getCurrentProcessingTime() {
-//			return internalTimerService.currentProcessingTime();
-//		}
-//
-//		@Override
-//		public long getCurrentWatermark() {
-//			return internalTimerService.currentWatermark();
-//		}
-//
-//		@Override
-//		public MetricGroup getMetricGroup() {
-//			return AlignedWindowOperator.this.getMetricGroup();
-//		}
-//
-//		public K getKey() {
-//			return key;
-//		}
-//
-//		void evictBefore(Iterable<TimestampedValue<IN>> elements, int size) {
-//			evictor.evictBefore((Iterable) elements, size, window, this);
-//		}
-//
-//		void evictAfter(Iterable<TimestampedValue<IN>>  elements, int size) {
-//			evictor.evictAfter((Iterable) elements, size, window, this);
-//		}
-//	}
+	// TODO: Handle Evictor
 
-	// ------------------------------------------------------------------------
-	// Getters for testing
-	// ------------------------------------------------------------------------
 
 	@Override
 	@VisibleForTesting
