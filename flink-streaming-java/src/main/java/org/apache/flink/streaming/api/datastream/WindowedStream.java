@@ -300,6 +300,11 @@ public class WindowedStream<T, K, W extends Window> {
 					lateDataOutputTag);
 
 		}  else if (windowAssigner instanceof AlignedWindowAssigner) {
+			// this is a good way to explain how windowed stream handles conversion to AlignedWindowOperator
+			// TODO: Need a way to allow ACC to be intermediately accessible, thus as this moment:
+			//   1. Reduce is OK since the AppendingState is <T, T>
+			//   2. Apply (ListState) is OK since the AppendingState is <T, Iterable<T>>
+			//   3. Aggregate is not OK since it requires <T, ACC, V> to have ACC === V
 			AlignedWindowAssigner<? super T, W> alignedWindowAssigner = (AlignedWindowAssigner) windowAssigner;
 			ListStateDescriptor<W> windowStateDesc =
 				new ListStateDescriptor<>("window-slice-mappings", windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()));
