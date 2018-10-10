@@ -164,11 +164,11 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 */
 	protected transient TimestampedCollector<OUT> timestampedCollector;
 
-	protected transient Context triggerContext = new Context(null, null);
+	protected transient TriggerContext triggerContext = new TriggerContext(null, null);
 
 	protected transient WindowContext processContext;
 
-	protected transient WindowAssigner.WindowAssignerContext windowAssignerContext;
+	protected transient WindowAssignerContext windowAssignerContext;
 
 	// ------------------------------------------------------------------------
 	// State that needs to be checkpointed
@@ -224,15 +224,10 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		internalTimerService =
 				getInternalTimerService("window-timers", windowSerializer, this);
 
-		triggerContext = new Context(null, null);
+		triggerContext = new TriggerContext(null, null);
 		processContext = new WindowContext(null);
 
-		windowAssignerContext = new WindowAssigner.WindowAssignerContext() {
-			@Override
-			public long getCurrentProcessingTime() {
-				return internalTimerService.currentProcessingTime();
-			}
-		};
+		windowAssignerContext = new WindowAssignerContext();
 
 		// create (or restore) the state that hold the actual window contents
 		// NOTE - the state may be null in the case of the overriding evicting window operator
@@ -292,13 +287,14 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
+		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
+		windowAssignerContext.setCurrentKey(key);
+
 		final Collection<W> elementWindows = windowAssigner.assignWindows(
 			element.getValue(), element.getTimestamp(), windowAssignerContext);
 
 		//if element is handled by none of assigned elementWindows
 		boolean isSkippedElement = true;
-
-		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
 
 		if (windowAssigner instanceof MergingWindowAssigner) {
 			MergingWindowSet<W> mergingWindows = getMergingWindowSet();
@@ -780,17 +776,38 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	}
 
 	/**
+	 * Implementation of the {@link WindowAssigner.WindowAssignerContext}
+	 */
+	public class WindowAssignerContext extends WindowAssigner.WindowAssignerContext {
+		protected K key;
+
+		@Override
+		public long getCurrentProcessingTime() {
+			return internalTimerService.currentProcessingTime();
+		}
+
+		@Override
+		public K getCurrentKey() {
+			return key;
+		}
+
+		void setCurrentKey(K key) {
+			this.key = key;
+		}
+	}
+
+	/**
 	 * {@code Context} is a utility for handling {@code Trigger} invocations. It can be reused
 	 * by setting the {@code key} and {@code window} fields. No internal state must be kept in
 	 * the {@code Context}
 	 */
-	public class Context implements Trigger.OnMergeContext {
+	public class TriggerContext implements Trigger.OnMergeContext {
 		protected K key;
 		protected W window;
 
 		protected Collection<W> mergedWindows;
 
-		public Context(K key, W window) {
+		public TriggerContext(K key, W window) {
 			this.key = key;
 			this.window = window;
 		}

@@ -1491,6 +1491,11 @@ public class WindowOperatorTest extends TestLogger {
 			public long getCurrentProcessingTime() {
 				return operator.windowAssignerContext.getCurrentProcessingTime();
 			}
+
+			@Override
+			public Object getCurrentKey() {
+				return "key2";
+			}
 		});
 		TimeWindow window = Iterables.getOnlyElement(windows);
 
