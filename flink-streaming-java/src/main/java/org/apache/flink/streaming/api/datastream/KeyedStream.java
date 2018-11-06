@@ -56,6 +56,7 @@ import org.apache.flink.streaming.api.operators.co.IntervalJoinOperator;
 import org.apache.flink.streaming.api.transformations.OneInputTransformation;
 import org.apache.flink.streaming.api.transformations.PartitionTransformation;
 import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
+import org.apache.flink.streaming.api.windowing.assigners.SliceAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
@@ -670,6 +671,51 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	@PublicEvolving
 	public <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner) {
 		return new WindowedStream<>(this, assigner);
+	}
+
+	// ------------------------------------------------------------------------
+	//  Slicing / Non-overlapping Windowing
+	// ------------------------------------------------------------------------
+
+	/**
+	 *
+	 * @param size
+	 * @param interval
+	 * @return
+	 */
+	public SlicedStream<T, KEY, TimeWindow> timeSlice(Time size, Time interval) {
+		return null;
+	}
+
+	/**
+	 *
+	 * @param size
+	 * @return
+	 */
+	public SlicedStream<T, KEY, GlobalWindow> countSlice(long size) {
+		return null;
+	}
+
+	/**
+	 * Similar to windowing, slicing evaluates windows over a key grouped stream.
+	 * Elements are put into windows by a {@link SliceAssigner} that groups elements based on
+	 * key and non-overlapping window.
+	 *
+	 * <p>Unlike windowing, slicing will transform into a non-overlapping windowed results,
+	 * or {@link SlicedResultStream}, after window process functions are applied. Further processing
+	 * can be done over the sliced result stream to achieve more complex but efficient windowing
+	 * operation.
+	 *
+	 * <p>A {@link org.apache.flink.streaming.api.windowing.triggers.Trigger} can be defined to
+	 * specify when slices are evaluated. However, {@code SliceAssigners} have a default
+	 * {@code Trigger} that is used if a {@code Trigger} is not specified.
+	 *
+	 * @param assigner The {@code SliceAssigner} that assigns elements to windows.
+	 * @return The windows data stream that can support further slicing grouping.
+	 */
+	@PublicEvolving
+	public <W extends Window> SlicedStream<T, KEY, W> slice(SliceAssigner<? super T, W> assigner) {
+		return new SlicedStream<>(this, assigner);
 	}
 
 	// ------------------------------------------------------------------------
