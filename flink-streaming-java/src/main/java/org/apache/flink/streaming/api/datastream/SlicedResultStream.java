@@ -67,6 +67,7 @@ import org.apache.flink.streaming.runtime.operators.windowing.functions.Internal
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamElementSerializer;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import org.apache.flink.util.Preconditions;
 
@@ -100,17 +101,11 @@ public class SlicedResultStream<T, K, W extends Window> {
 
 	private final KeySelector<Slice<T, K, W>, K> keySel;
 
-	/** The window assigner. */
-	private WindowOverSliceAssigner<T, K, W> assigner;
-
 	/** The trigger that is used for window evaluation/emission. */
 	private Trigger<? super Slice<T, K, W>, ? super W> trigger;
 
 	/** The evictor that is used for evicting elements before window evaluation. */
 	private Evictor<? super Slice<T, K, W>, ? super W> evictor;
-
-	/** The process function for merging slice partial results */
-	private WindowFunction<T, ?, K, W> windowFunction;
 
 	/** The user-specified allowed lateness. */
 	private long allowedLateness = 0L;
@@ -127,12 +122,6 @@ public class SlicedResultStream<T, K, W extends Window> {
 		this.keySel = (KeySelector<Slice<T, K, W>, K>) Slice::getKey;
 	}
 
-	@PublicEvolving
-	public SlicedResultStream<T, K, W> sliceOver(WindowOverSliceAssigner<T, K, W> assigner) {
-		this.assigner = assigner;
-		return this;
-	}
-
 	/**
 	 * Sets the {@code Trigger} that should be used to trigger window emission.
 	 */
@@ -142,58 +131,106 @@ public class SlicedResultStream<T, K, W extends Window> {
 		return this;
 	}
 
-	/**
-	 * Sets the time by which elements are allowed to be late. Elements that
-	 * arrive behind the watermark by more than the specified time will be dropped.
-	 * By default, the allowed lateness is {@code 0L}.
-	 *
-	 * <p>Setting an allowed lateness is only valid for event-time windows.
-	 */
-	@PublicEvolving
-	public SlicedResultStream<T, K, W> allowedLateness(Time lateness) {
-		final long millis = lateness.toMilliseconds();
-		checkArgument(millis >= 0, "The allowed lateness cannot be negative.");
-
-		this.allowedLateness = millis;
-		return this;
-	}
-
-	/**
-	 * Send late arriving data to the side output identified by the given {@link OutputTag}. Data
-	 * is considered late after the watermark has passed the end of the window plus the allowed
-	 * lateness set using {@link #allowedLateness(Time)}.
-	 *
-	 * <p>You can get the stream of late data using
-	 * {@link SingleOutputStreamOperator#getSideOutput(OutputTag)} on the
-	 * {@link SingleOutputStreamOperator} resulting from the windowed operation
-	 * with the same {@link OutputTag}.
-	 */
-	@PublicEvolving
-	public SlicedResultStream<T, K, W> sideOutputLateData(OutputTag<Slice<T, K, W>> outputTag) {
-		Preconditions.checkNotNull(outputTag, "Side output tag must not be null.");
-		this.lateDataOutputTag = input.getExecutionEnvironment().clean(outputTag);
-		return this;
-	}
-
-	/**
-	 * Sets the {@code Evictor} that should be used to evict elements from a window before emission.
-	 *
-	 * <p>Note: When using an evictor window performance will degrade significantly, since
-	 * incremental aggregation of window results cannot be used.
-	 */
-	@PublicEvolving
-	public SlicedResultStream<T, K, W> evictor(Evictor<? super Slice<T, K, W>, ? super W> evictor) {
-		this.evictor = evictor;
-		return this;
-	}
+//	/**
+//	 * Sets the time by which elements are allowed to be late. Elements that
+//	 * arrive behind the watermark by more than the specified time will be dropped.
+//	 * By default, the allowed lateness is {@code 0L}.
+//	 *
+//	 * <p>Setting an allowed lateness is only valid for event-time windows.
+//	 */
+//	@PublicEvolving
+//	public SlicedResultStream<T, K, W> allowedLateness(Time lateness) {
+//		final long millis = lateness.toMilliseconds();
+//		checkArgument(millis >= 0, "The allowed lateness cannot be negative.");
+//
+//		this.allowedLateness = millis;
+//		return this;
+//	}
+//
+//	/**
+//	 * Send late arriving data to the side output identified by the given {@link OutputTag}. Data
+//	 * is considered late after the watermark has passed the end of the window plus the allowed
+//	 * lateness set using {@link #allowedLateness(Time)}.
+//	 *
+//	 * <p>You can get the stream of late data using
+//	 * {@link SingleOutputStreamOperator#getSideOutput(OutputTag)} on the
+//	 * {@link SingleOutputStreamOperator} resulting from the windowed operation
+//	 * with the same {@link OutputTag}.
+//	 */
+//	@PublicEvolving
+//	public SlicedResultStream<T, K, W> sideOutputLateData(OutputTag<Slice<T, K, W>> outputTag) {
+//		Preconditions.checkNotNull(outputTag, "Side output tag must not be null.");
+//		this.lateDataOutputTag = input.getExecutionEnvironment().clean(outputTag);
+//		return this;
+//	}
+//
+//	/**
+//	 * Sets the {@code Evictor} that should be used to evict elements from a window before emission.
+//	 *
+//	 * <p>Note: When using an evictor window performance will degrade significantly, since
+//	 * incremental aggregation of window results cannot be used.
+//	 */
+//	@PublicEvolving
+//	public SlicedResultStream<T, K, W> evictor(Evictor<? super Slice<T, K, W>, ? super W> evictor) {
+//		this.evictor = evictor;
+//		return this;
+//	}
 
 	// ------------------------------------------------------------------------
 	//  Operations on the keyed windows
 	// ------------------------------------------------------------------------
 
 	@PublicEvolving
-	public <R> SlicedResultStream<T, K, W> windowFunction(WindowFunction<T, R, K, W> windowFunction) {
-		return null;
+	public <R> SingleOutputStreamOperator<R> slideOver(
+		WindowOverSliceAssigner<T, K, W> assigner,
+		WindowFunction<T, R, K, W> windowFunction) {
+
+		WindowedStream<Slice<T, K, W>, K, W> windowedStream = new WindowedStream<>(input, assigner);
+		if (trigger != null) {
+			windowedStream = windowedStream.trigger(trigger);
+		}
+		if (evictor != null) {
+			windowedStream = windowedStream.evictor(evictor);
+		}
+		return windowedStream.apply(wrapSliceFunction(windowFunction));
+	}
+
+	@PublicEvolving
+	public SingleOutputStreamOperator<T> slideOver(
+		WindowOverSliceAssigner<T, K, W> assigner,
+		ReduceFunction<T> reduceFunction) {
+
+		WindowedStream<Slice<T, K, W>, K, W> windowedStream = new WindowedStream<>(input, assigner);
+		if (trigger != null) {
+			windowedStream = windowedStream.trigger(trigger);
+		}
+		if (evictor != null) {
+			windowedStream = windowedStream.evictor(evictor);
+		}
+		return windowedStream.reduce(
+			wrapSliceFunction(reduceFunction),
+			(WindowFunction<Slice<T, K, W>, T, K, W>) (k, window, input, out) -> {
+				for (Slice<T, K, W> in: input) {
+					out.collect(in.getContent());
+				}
+			});
+	}
+
+	@PublicEvolving
+	public <ACC, R> SingleOutputStreamOperator<R> slideOver(
+		WindowOverSliceAssigner<T, K, W> assigner,
+		AggregateFunction<T, ACC, R> aggregateFunction) {
+
+		WindowedStream<Slice<T, K, W>, K, W> windowedStream = new WindowedStream<>(input, assigner);
+		if (trigger != null) {
+			windowedStream = windowedStream.trigger(trigger);
+		}
+		if (evictor != null) {
+			windowedStream = windowedStream.evictor(evictor);
+		}
+		return windowedStream.aggregate(
+			wrapSliceFunction(aggregateFunction),
+			new PassThroughWindowFunction<K, W, R>());
 	}
 
 //
@@ -1572,8 +1609,8 @@ public class SlicedResultStream<T, K, W extends Window> {
 			);
 	}
 
-	private <R> WindowFunction<Slice<T, K, W>, R, K, W> wrapSliceFunction(WindowFunction<T, R, K, W> reduceFunction) {
-		return (WindowFunction<Slice<T, K, W>, R, K, W>) (key, window, input, out) -> reduceFunction.apply(key,
+	private <R> WindowFunction<Slice<T, K, W>, R, K, W> wrapSliceFunction(WindowFunction<T, R, K, W> windowFunction) {
+		return (WindowFunction<Slice<T, K, W>, R, K, W>) (key, window, input, out) -> windowFunction.apply(key,
 			window,
 			FluentIterable
 				.from(input)
