@@ -49,8 +49,8 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <W> The type of {@code Window} that the {@code WindowAssigner} assigns.
  */
 @Internal
-public class SliceOperator<K, IN, ACC, OUT, W extends Window>
-		extends WindowOperator<K, IN, ACC, Slice<OUT, K, W>, W> {
+public class SliceOperator<K, IN, ACC, W extends Window>
+		extends WindowOperator<K, IN, ACC, Slice<ACC, K, W>, W> {
 
 	public SliceOperator(
 		WindowAssigner<? super IN, W> windowAssigner,
@@ -58,7 +58,7 @@ public class SliceOperator<K, IN, ACC, OUT, W extends Window>
 		KeySelector<IN, K> keySelector,
 		TypeSerializer<K> keySerializer,
 		StateDescriptor<? extends AppendingState<IN, ACC>, ?> windowStateDescriptor,
-		InternalWindowFunction<ACC, OUT, K, W> windowFunction,
+		InternalWindowFunction<ACC, ACC, K, W> windowFunction,
 		Trigger<? super IN, ? super W> trigger,
 		long allowedLateness,
 		OutputTag<IN> lateDataOutputTag) {
@@ -76,10 +76,10 @@ public class SliceOperator<K, IN, ACC, OUT, W extends Window>
 
 	// Process Element needs to punch correct timestamp / watermark for downstream processing.
 
-	private static <OUT, W extends Window, K, ACC> InternalWindowFunction<ACC, Slice<OUT, K, W>, K, W> wrapFunction(InternalWindowFunction<ACC, OUT, K, W> windowFunction) {
-		return new InternalWindowFunction<ACC, Slice<OUT, K, W>, K, W>() {
+	private static <ACC, W extends Window, K> InternalWindowFunction<ACC, Slice<ACC, K, W>, K, W> wrapFunction(InternalWindowFunction<ACC, ACC, K, W> windowFunction) {
+		return new InternalWindowFunction<ACC, Slice<ACC, K, W>, K, W>() {
 			@Override
-			public void process(K k, W window, InternalWindowContext context, ACC input, Collector<Slice<OUT, K, W>> out) throws Exception {
+			public void process(K k, W window, InternalWindowContext context, ACC input, Collector<Slice<ACC, K, W>> out) throws Exception {
 
 			}
 
