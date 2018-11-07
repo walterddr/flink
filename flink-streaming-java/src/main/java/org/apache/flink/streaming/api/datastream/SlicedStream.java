@@ -41,6 +41,7 @@ import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.runtime.operators.windowing.SliceOperator;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.*;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import org.apache.flink.util.Preconditions;
 
@@ -144,22 +145,6 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 		return this;
 	}
 
-//	/**
-//	 * Sets the {@code Evictor} that should be used to evict elements from a window before emission.
-//	 *
-//	 * <p>Note: When using an evictor window performance will degrade significantly, since
-//	 * incremental aggregation of window results cannot be used.
-//	 */
-//	@PublicEvolving
-//	public SlicedStream<T, K, W> evictor(Evictor<? super T, ? super W> evictor) {
-//		if (sliceAssigner instanceof BaseAlignedWindowAssigner) {
-//			throw new UnsupportedOperationException("Cannot use a " + sliceAssigner.getClass().getSimpleName() + " with an Evictor.");
-//		}
-//		this.evictor = evictor;
-//		return this;
-//	}
-
-
 	// ------------------------------------------------------------------------
 	//  Operations on the keyed windows
 	// ------------------------------------------------------------------------
@@ -185,10 +170,11 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 			throw new UnsupportedOperationException("ReduceFunction of reduce can not be a RichFunction. " +
 				"Please use reduce(ReduceFunction, WindowFunction) instead.");
 		}
+		TypeInformation<T> reducedType = input.getType();
 
 		//clean the closure
 		function = input.getExecutionEnvironment().clean(function);
-		return reduceSlice(function, new PassThroughWindowFunction<K, W, T>());
+		return reduceSlice(function, reducedType);
 	}
 
 	/**
@@ -199,33 +185,11 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 * <p>Arriving data is incrementally aggregated using the given reducer.
 	 *
 	 * @param reduceFunction The reduce function that is used for incremental aggregation.
-	 * @param function The window function.
-	 * @return The data stream that is the result of applying the window function to the window.
-	 */
-	public <R> SlicedResultStream<R, K, W> reduceSlice(
-			ReduceFunction<T> reduceFunction,
-			WindowFunction<T, R, K, W> function) {
-
-		TypeInformation<T> inType = input.getType();
-		TypeInformation<R> resultType = getWindowFunctionReturnType(function, inType);
-		return reduceSlice(reduceFunction, function, resultType);
-	}
-
-	/**
-	 * Applies the given window function to each window. The window function is called for each
-	 * evaluation of the window for each key individually. The output of the window function is
-	 * interpreted as a regular non-windowed stream.
-	 *
-	 * <p>Arriving data is incrementally aggregated using the given reducer.
-	 *
-	 * @param reduceFunction The reduce function that is used for incremental aggregation.
-	 * @param function The window function.
 	 * @param resultType Type information for the result type of the window function.
 	 * @return The data stream that is the result of applying the window function to the window.
 	 */
-	public <R> SlicedResultStream<R, K, W> reduceSlice(
+	public <R> SlicedResultStream<T, K, W> reduceSlice(
 			ReduceFunction<T> reduceFunction,
-			WindowFunction<T, R, K, W> function,
 			TypeInformation<R> resultType) {
 
 		if (reduceFunction instanceof RichFunction) {
@@ -233,13 +197,12 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 		}
 
 		//clean the closures
-		function = input.getExecutionEnvironment().clean(function);
 		reduceFunction = input.getExecutionEnvironment().clean(reduceFunction);
 
-		final String opName = generateOperatorName(sliceAssigner, trigger, null, reduceFunction, function);
+		final String opName = generateOperatorName(sliceAssigner, trigger, null, reduceFunction, null);
 		KeySelector<T, K> keySel = input.getKeySelector();
 
-		OneInputStreamOperator<T, Slice<R, K, W>> operator;
+		OneInputStreamOperator<T, Slice<T, K, W>> operator;
 
 		ReducingStateDescriptor<T> stateDesc = new ReducingStateDescriptor<>("window-contents",
 			reduceFunction,
@@ -251,90 +214,89 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 				keySel,
 				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
 				stateDesc,
-				new InternalSingleValueWindowFunction<>(function),
+				new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<K, W, T>()),
 				trigger,
 				allowedLateness,
 				lateDataOutputTag);
 
-		SingleOutputStreamOperator<Slice<R, K, W>> transform = input.transform(
+		SingleOutputStreamOperator<Slice<T, K, W>> transform = input.transform(
 			opName,
 			new SliceTypeInfo<>(resultType,
 				input.getKeyType(),
 				sliceAssigner.getWindowType()),
 			operator);
 
-		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<R, K, W>, K>) Slice::getKey));
+		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<T, K, W>, K>) Slice::getKey));
 	}
 
-	/**
-	 * Applies the given window function to each window. The window function is called for each
-	 * evaluation of the window for each key individually. The output of the window function is
-	 * interpreted as a regular non-windowed stream.
-	 *
-	 * <p>Arriving data is incrementally aggregated using the given reducer.
-	 *
-	 * @param reduceFunction The reduce function that is used for incremental aggregation.
-	 * @param function The window function.
-	 * @return The data stream that is the result of applying the window function to the window.
-	 */
-	@PublicEvolving
-	public <R> SlicedResultStream<R, K, W> reduceSlice(ReduceFunction<T> reduceFunction, ProcessWindowFunction<T, R, K, W> function) {
-		TypeInformation<R> resultType = getProcessWindowFunctionReturnType(function, input.getType(), null);
-
-		return reduceSlice(reduceFunction, function, resultType);
-	}
-
-
-	/**
-	 * Applies the given window function to each window. The window function is called for each
-	 * evaluation of the window for each key individually. The output of the window function is
-	 * interpreted as a regular non-windowed stream.
-	 *
-	 * <p>Arriving data is incrementally aggregated using the given reducer.
-	 *
-	 * @param reduceFunction The reduce function that is used for incremental aggregation.
-	 * @param function The window function.
-	 * @param resultType Type information for the result type of the window function
-	 * @return The data stream that is the result of applying the window function to the window.
-	 */
-	@Internal
-	public <R> SlicedResultStream<R, K, W> reduceSlice(ReduceFunction<T> reduceFunction, ProcessWindowFunction<T, R, K, W> function, TypeInformation<R> resultType) {
-		if (reduceFunction instanceof RichFunction) {
-			throw new UnsupportedOperationException("ReduceFunction of apply can not be a RichFunction.");
-		}
-		//clean the closures
-		function = input.getExecutionEnvironment().clean(function);
-		reduceFunction = input.getExecutionEnvironment().clean(reduceFunction);
-
-		final String opName = generateOperatorName(sliceAssigner, trigger, null, reduceFunction, function);
-		KeySelector<T, K> keySel = input.getKeySelector();
-
-		OneInputStreamOperator<T, Slice<R, K, W>> operator;
-
-		ReducingStateDescriptor<T> stateDesc = new ReducingStateDescriptor<>("window-contents",
-			reduceFunction,
-			input.getType().createSerializer(getExecutionEnvironment().getConfig()));
-
-		operator =
-			new SliceOperator<>(sliceAssigner,
-				sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
-				keySel,
-				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
-				stateDesc,
-				new InternalSingleValueProcessWindowFunction<>(function),
-				trigger,
-				allowedLateness,
-				lateDataOutputTag);
-
-		SingleOutputStreamOperator<Slice<R, K, W>> transform = input.transform(
-			opName,
-			new SliceTypeInfo<>(resultType,
-				input.getKeyType(),
-				sliceAssigner.getWindowType()),
-			operator);
-
-		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<R, K, W>, K>) Slice::getKey));
-	}
+//	/**
+//	 * Applies the given window function to each window. The window function is called for each
+//	 * evaluation of the window for each key individually. The output of the window function is
+//	 * interpreted as a regular non-windowed stream.
+//	 *
+//	 * <p>Arriving data is incrementally aggregated using the given reducer.
+//	 *
+//	 * @param reduceFunction The reduce function that is used for incremental aggregation.
+//	 * @param function The window function.
+//	 * @return The data stream that is the result of applying the window function to the window.
+//	 */
+//	@PublicEvolving
+//	public <R> SlicedResultStream<R, K, W> reduceSlice(ReduceFunction<T> reduceFunction, ProcessWindowFunction<T, R, K, W> function) {
+//		TypeInformation<R> resultType = getProcessWindowFunctionReturnType(function, input.getType(), null);
+//
+//		return reduceSlice(reduceFunction, function, resultType);
+//	}
+//
+//
+//	/**
+//	 * Applies the given window function to each window. The window function is called for each
+//	 * evaluation of the window for each key individually. The output of the window function is
+//	 * interpreted as a regular non-windowed stream.
+//	 *
+//	 * <p>Arriving data is incrementally aggregated using the given reducer.
+//	 *
+//	 * @param reduceFunction The reduce function that is used for incremental aggregation.
+//	 * @param function The window function.
+//	 * @param resultType Type information for the result type of the window function
+//	 * @return The data stream that is the result of applying the window function to the window.
+//	 */
+//	@Internal
+//	public <R> SlicedResultStream<R, K, W> reduceSlice(ReduceFunction<T> reduceFunction, ProcessWindowFunction<T, R, K, W> function, TypeInformation<R> resultType) {
+//		if (reduceFunction instanceof RichFunction) {
+//			throw new UnsupportedOperationException("ReduceFunction of apply can not be a RichFunction.");
+//		}
+//		//clean the closures
+//		function = input.getExecutionEnvironment().clean(function);
+//		reduceFunction = input.getExecutionEnvironment().clean(reduceFunction);
+//
+//		final String opName = generateOperatorName(sliceAssigner, trigger, null, reduceFunction, function);
+//		KeySelector<T, K> keySel = input.getKeySelector();
+//
+//		OneInputStreamOperator<T, Slice<R, K, W>> operator;
+//
+//		ReducingStateDescriptor<T> stateDesc = new ReducingStateDescriptor<>("window-contents",
+//			reduceFunction,
+//			input.getType().createSerializer(getExecutionEnvironment().getConfig()));
+//
+//		operator =
+//			new SliceOperator<>(sliceAssigner,
+//				sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
+//				keySel,
+//				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
+//				stateDesc,
+//				trigger,
+//				allowedLateness,
+//				lateDataOutputTag);
+//
+//		SingleOutputStreamOperator<Slice<R, K, W>> transform = input.transform(
+//			opName,
+//			new SliceTypeInfo<>(resultType,
+//				input.getKeyType(),
+//				sliceAssigner.getWindowType()),
+//			operator);
+//
+//		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<R, K, W>, K>) Slice::getKey));
+//	}
 
 	// ------------------------------------------------------------------------
 	//  Aggregation Function
@@ -353,7 +315,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 *            AggregateFunction's result type
 	 */
 	@PublicEvolving
-	public <ACC, R> SlicedResultStream<R, K, W> aggregateSlice(AggregateFunction<T, ACC, R> function) {
+	public <ACC, R> SlicedResultStream<ACC, K, W> aggregateSlice(AggregateFunction<T, ACC, R> function) {
 		checkNotNull(function, "function");
 
 		if (function instanceof RichFunction) {
@@ -382,7 +344,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 *            AggregateFunction's result type
 	 */
 	@PublicEvolving
-	public <ACC, R> SlicedResultStream<R, K, W> aggregateSlice(
+	public <ACC, R> SlicedResultStream<ACC, K, W> aggregateSlice(
 			AggregateFunction<T, ACC, R> function,
 			TypeInformation<ACC> accumulatorType,
 			TypeInformation<R> resultType) {
@@ -395,8 +357,45 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 			throw new UnsupportedOperationException("This aggregation function cannot be a RichFunction.");
 		}
 
-		return aggregateSlice(function, new PassThroughWindowFunction<K, W, R>(),
-				accumulatorType, resultType, resultType);
+		AggregateFunction<T, ACC, ACC> aggFunction = wrapPartialAggregateFunction(function);
+		WindowFunction<ACC, R, K, W> windowFunction = wrapAggregateWindowFunction(function);
+
+		return aggregateSlice(aggFunction, windowFunction, accumulatorType, resultType);
+	}
+
+	private <R, ACC> AggregateFunction<T, ACC, ACC> wrapPartialAggregateFunction(AggregateFunction<T, ACC, R> function) {
+		return new AggregateFunction<T, ACC, ACC>() {
+
+			@Override
+			public ACC createAccumulator() {
+				return function.createAccumulator();
+			}
+
+			@Override
+			public ACC add(T value, ACC accumulator) {
+				return function.add(value, accumulator);
+			}
+
+			@Override
+			public ACC getResult(ACC accumulator) {
+				return accumulator;
+			}
+
+			@Override
+			public ACC merge(ACC a, ACC b) {
+				return function.merge(a, b);
+			}
+		};
+	}
+
+	private <R, ACC> WindowFunction<ACC, R, K, W> wrapAggregateWindowFunction(AggregateFunction<T,ACC,R> function) {
+		return (WindowFunction<ACC, R, K, W>) (k, window, input, out) -> {
+			ACC acc = function.createAccumulator();
+			for (ACC element: input) {
+				acc = function.merge(acc, element);
+			}
+			out.collect(function.getResult(acc));
+		};
 	}
 
 	/**
@@ -413,14 +412,13 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 * @return The data stream that is the result of applying the window function to the window.
 	 *
 	 * @param <ACC> The type of the AggregateFunction's accumulator
-	 * @param <V> The type of AggregateFunction's result, and the WindowFunction's input
 	 * @param <R> The type of the elements in the resulting stream, equal to the
 	 *            WindowFunction's result type
 	 */
 	@PublicEvolving
-	public <ACC, V, R> SlicedResultStream<R, K, W> aggregateSlice(
-			AggregateFunction<T, ACC, V> aggFunction,
-			WindowFunction<V, R, K, W> windowFunction) {
+	public <ACC, R> SlicedResultStream<ACC, K, W> aggregateSlice(
+			AggregateFunction<T, ACC, ACC> aggFunction,
+			WindowFunction<ACC, R, K, W> windowFunction) {
 
 		checkNotNull(aggFunction, "aggFunction");
 		checkNotNull(windowFunction, "windowFunction");
@@ -428,12 +426,9 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 		TypeInformation<ACC> accumulatorType = TypeExtractor.getAggregateFunctionAccumulatorType(
 				aggFunction, input.getType(), null, false);
 
-		TypeInformation<V> aggResultType = TypeExtractor.getAggregateFunctionReturnType(
-				aggFunction, input.getType(), null, false);
+		TypeInformation<R> resultType = getWindowFunctionReturnType(windowFunction, accumulatorType);
 
-		TypeInformation<R> resultType = getWindowFunctionReturnType(windowFunction, aggResultType);
-
-		return aggregateSlice(aggFunction, windowFunction, accumulatorType, aggResultType, resultType);
+		return aggregateSlice(aggFunction, windowFunction, accumulatorType, resultType);
 	}
 
 	/**
@@ -452,22 +447,19 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 * @return The data stream that is the result of applying the window function to the window.
 	 *
 	 * @param <ACC> The type of the AggregateFunction's accumulator
-	 * @param <V> The type of AggregateFunction's result, and the WindowFunction's input
 	 * @param <R> The type of the elements in the resulting stream, equal to the
 	 *            WindowFunction's result type
 	 */
 	@PublicEvolving
-	public <ACC, V, R> SlicedResultStream<R, K, W> aggregateSlice(
-			AggregateFunction<T, ACC, V> aggregateFunction,
-			WindowFunction<V, R, K, W> windowFunction,
+	public <ACC, R> SlicedResultStream<ACC, K, W> aggregateSlice(
+			AggregateFunction<T, ACC, ACC> aggregateFunction,
+			WindowFunction<ACC, R, K, W> windowFunction,
 			TypeInformation<ACC> accumulatorType,
-			TypeInformation<V> aggregateResultType,
 			TypeInformation<R> resultType) {
 
 		checkNotNull(aggregateFunction, "aggregateFunction");
 		checkNotNull(windowFunction, "windowFunction");
 		checkNotNull(accumulatorType, "accumulatorType");
-		checkNotNull(aggregateResultType, "aggregateResultType");
 		checkNotNull(resultType, "resultType");
 
 		if (aggregateFunction instanceof RichFunction) {
@@ -481,9 +473,9 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 		final String opName = generateOperatorName(sliceAssigner, trigger, null, aggregateFunction, windowFunction);
 		KeySelector<T, K> keySel = input.getKeySelector();
 
-		OneInputStreamOperator<T, Slice<R, K, W>> operator;
+		OneInputStreamOperator<T, Slice<ACC, K, W>> operator;
 
-		AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>("window-contents",
+		AggregatingStateDescriptor<T, ACC, ACC> stateDesc = new AggregatingStateDescriptor<>("window-contents",
 			aggregateFunction, accumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
 
 		operator = new SliceOperator<>(sliceAssigner,
@@ -491,19 +483,19 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 			keySel,
 			input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
 			stateDesc,
-			new InternalSingleValueWindowFunction<>(windowFunction),
+			new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<K, W, ACC>()),
 			trigger,
 			allowedLateness,
 			lateDataOutputTag);
 
-		SingleOutputStreamOperator<Slice<R, K, W>> transform = input.transform(
+		SingleOutputStreamOperator<Slice<ACC, K, W>> transform = input.transform(
 			opName,
 			new SliceTypeInfo<>(resultType,
 				input.getKeyType(),
 				sliceAssigner.getWindowType()),
 			operator);
 
-		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<R, K, W>, K>) Slice::getKey));
+		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<ACC, K, W>, K>) Slice::getKey));
 	}
 
 	/**
@@ -525,7 +517,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 *            WindowFunction's result type
 	 */
 	@PublicEvolving
-	public <ACC, V, R> SlicedResultStream<R, K, W> aggregateSlice(
+	public <ACC, V, R> SlicedResultStream<V, K, W> aggregateSlice(
 			AggregateFunction<T, ACC, V> aggFunction,
 			ProcessWindowFunction<V, R, K, W> windowFunction) {
 
@@ -593,7 +585,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 	 *            WindowFunction's result type
 	 */
 	@PublicEvolving
-	public <ACC, V, R> SlicedResultStream<R, K, W> aggregateSlice(
+	public <ACC, V, R> SlicedResultStream<V, K, W> aggregateSlice(
 			AggregateFunction<T, ACC, V> aggregateFunction,
 			ProcessWindowFunction<V, R, K, W> windowFunction,
 			TypeInformation<ACC> accumulatorType,
@@ -617,7 +609,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 		final String opName = generateOperatorName(sliceAssigner, trigger, null, aggregateFunction, windowFunction);
 		KeySelector<T, K> keySel = input.getKeySelector();
 
-		OneInputStreamOperator<T, Slice<R, K, W>> operator;
+		OneInputStreamOperator<T, Slice<V, K, W>> operator;
 
 		AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>("window-contents",
 			aggregateFunction, accumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
@@ -627,19 +619,19 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 			keySel,
 			input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
 			stateDesc,
-			new InternalSingleValueProcessWindowFunction<>(windowFunction),
+			new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<K, W, V>()),
 			trigger,
 			allowedLateness,
 			lateDataOutputTag);
 
-		SingleOutputStreamOperator<Slice<R, K, W>> transform = input.transform(
+		SingleOutputStreamOperator<Slice<V, K, W>> transform = input.transform(
 			opName,
-			new SliceTypeInfo<>(resultType,
+			new SliceTypeInfo<>(aggregateResultType,
 				input.getKeyType(),
 				sliceAssigner.getWindowType()),
 			operator);
 
-		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<R, K, W>, K>) Slice::getKey));
+		return new SlicedResultStream<>(transform.keyBy((KeySelector<Slice<V, K, W>, K>) Slice::getKey));
 	}
 
 //	// ------------------------------------------------------------------------

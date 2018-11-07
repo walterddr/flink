@@ -110,7 +110,7 @@ public class SlicedResultStream<T, K, W extends Window> {
 	private Evictor<? super Slice<T, K, W>, ? super W> evictor;
 
 	/** The process function for merging slice partial results */
-	private WindowFunction<T, T, K, W> windowFunction;
+	private WindowFunction<T, ?, K, W> windowFunction;
 
 	/** The user-specified allowed lateness. */
 	private long allowedLateness = 0L;
@@ -128,13 +128,7 @@ public class SlicedResultStream<T, K, W extends Window> {
 	}
 
 	@PublicEvolving
-	public SlicedResultStream<T, K, W> windowFunction(WindowFunction<T, T, K, W> windowFunction) {
-		this.windowFunction = windowFunction;
-		return this;
-	}
-
-	@PublicEvolving
-	public SlicedResultStream<T, K, W> assigner(WindowOverSliceAssigner<T, K, W> assigner) {
+	public SlicedResultStream<T, K, W> sliceOver(WindowOverSliceAssigner<T, K, W> assigner) {
 		this.assigner = assigner;
 		return this;
 	}
@@ -193,10 +187,15 @@ public class SlicedResultStream<T, K, W extends Window> {
 		return this;
 	}
 
+	// ------------------------------------------------------------------------
+	//  Operations on the keyed windows
+	// ------------------------------------------------------------------------
 
-//	// ------------------------------------------------------------------------
-//	//  Operations on the keyed windows
-//	// ------------------------------------------------------------------------
+	@PublicEvolving
+	public <R> SlicedResultStream<T, K, W> windowFunction(WindowFunction<T, R, K, W> windowFunction) {
+		return null;
+	}
+
 //
 //	/**
 //	 * Applies a reduce function to the window. The window function is called for each evaluation
