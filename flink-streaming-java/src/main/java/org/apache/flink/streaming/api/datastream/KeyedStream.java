@@ -702,7 +702,7 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	 * key and non-overlapping window.
 	 *
 	 * <p>Unlike windowing, slicing will transform into a non-overlapping windowed results,
-	 * or {@link SlicedResultStream}, after window process functions are applied. Further processing
+	 * or {@link OverSliceStream}, after window process functions are applied. Further processing
 	 * can be done over the sliced result stream to achieve more complex but efficient windowing
 	 * operation.
 	 *

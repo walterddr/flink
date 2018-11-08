@@ -417,7 +417,7 @@ public class SliceOperator<K, IN, ACC, W extends Window>
 	 */
 	@SuppressWarnings("unchecked")
 	private void emitWindowContents(W window, ACC contents) throws Exception {
-		timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp());
+		timestampedCollector.setAbsoluteTimestamp(window.maxTimestamp()); // should be set to maximum element timestamp actually, but this also works.
 		processContext.window = window;
 		userFunction.process(triggerContext.key, window, processContext, contents, timestampedCollector);
 	}

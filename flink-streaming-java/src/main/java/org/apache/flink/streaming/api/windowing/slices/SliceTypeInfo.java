@@ -19,18 +19,16 @@
 package org.apache.flink.streaming.api.windowing.slices;
 
 import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.common.typeinfo.TypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.streaming.api.datastream.SlicedResultStream;
+import org.apache.flink.streaming.api.datastream.OverSliceStream;
 import org.apache.flink.streaming.api.windowing.windows.Window;
-import org.apache.flink.types.Row;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Output type for {@link SlicedResultStream}
+ * Output type for {@link OverSliceStream}
  *
  * A slice is defined by its contents shared key and window
  * This slice container also contains the combined contents

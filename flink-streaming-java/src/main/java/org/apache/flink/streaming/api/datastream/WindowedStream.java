@@ -889,7 +889,7 @@ public class WindowedStream<T, K, W extends Window> {
 		return aggregate(aggFunction, windowFunction, accumulatorType, aggResultType, resultType);
 	}
 
-	private static <IN, OUT, KEY> TypeInformation<OUT> getWindowFunctionReturnType(
+	protected static <IN, OUT, KEY> TypeInformation<OUT> getWindowFunctionReturnType(
 		WindowFunction<IN, OUT, KEY, ?> function,
 		TypeInformation<IN> inType) {
 		return TypeExtractor.getUnaryOperatorReturnType(
@@ -903,7 +903,7 @@ public class WindowedStream<T, K, W extends Window> {
 			false);
 	}
 
-	private static <IN, OUT, KEY> TypeInformation<OUT> getProcessWindowFunctionReturnType(
+	protected static <IN, OUT, KEY> TypeInformation<OUT> getProcessWindowFunctionReturnType(
 			ProcessWindowFunction<IN, OUT, KEY, ?> function,
 			TypeInformation<IN> inType,
 			String functionName) {
