@@ -34,15 +34,13 @@ import org.apache.flink.types.Row;
  * @param <K> key type of the elements
  * @param <W> window type of the slice
  */
-@TypeInfo(SliceTypeInfoFactory.class)
-public class Slice<T, K, W extends Window> extends Row {
+public class Slice<T, K, W extends Window> {
 
 	private T content;
 	private K key;
 	private W window;
 
 	public Slice(T content, K key, W window) {
-		super(3);
 		this.key = key;
 		this.content = content;
 		this.window = window;
