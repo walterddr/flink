@@ -115,6 +115,7 @@ public class SliceOperator<K, IN, ACC, W extends Window>
 	@Override
 	public void open() throws Exception {
 		super.open();
+		timestampedCollector = new TimestampedCollector<>(output);
 
 		// create (or restore) the state that hold the actual window contents
 		// NOTE - the state may be null in the case of the overriding evicting window operator
@@ -434,7 +435,7 @@ public class SliceOperator<K, IN, ACC, W extends Window>
 
 			@Override
 			public void collect(ACC record) {
-				record = record;
+				this.record = record;
 			}
 
 			@Override

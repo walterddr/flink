@@ -25,6 +25,7 @@ import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.state.AggregatingStateDescriptor;
 import org.apache.flink.api.common.state.ReducingStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
+import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
@@ -224,9 +225,10 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 			reduceFunction,
 			input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 
+		TypeSerializer<W> windowSerializer = sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig());
 		operator =
 			new SliceOperator<>(sliceAssigner,
-				sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
+				windowSerializer,
 				keySel,
 				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
 				stateDesc,
@@ -237,9 +239,10 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 
 		SingleOutputStreamOperator<Slice<T, K, W>> transform = input.transform(
 			opName,
-			new SliceTypeInfo<>(resultType,
+			new SliceTypeInfo<>(input.getType(),
 				input.getKeyType(),
-				sliceAssigner.getWindowType()),
+				sliceAssigner.getWindowType(),
+				windowSerializer),
 			operator);
 
 		return new OverSliceStream<>(
@@ -502,8 +505,9 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 		AggregatingStateDescriptor<T, ACC, ACC> stateDesc = new AggregatingStateDescriptor<>("window-contents",
 			aggregateFunction, accumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
 
+		TypeSerializer<W> windowSerializer = sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig());
 		operator = new SliceOperator<>(sliceAssigner,
-			sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
+			windowSerializer,
 			keySel,
 			input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
 			stateDesc,
@@ -514,9 +518,10 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 
 		SingleOutputStreamOperator<Slice<ACC, K, W>> transform = input.transform(
 			opName,
-			new SliceTypeInfo<>(resultType,
+			new SliceTypeInfo<>(accumulatorType,
 				input.getKeyType(),
-				sliceAssigner.getWindowType()),
+				sliceAssigner.getWindowType(),
+				windowSerializer),
 			operator);
 
 		return new OverSliceStream<>(

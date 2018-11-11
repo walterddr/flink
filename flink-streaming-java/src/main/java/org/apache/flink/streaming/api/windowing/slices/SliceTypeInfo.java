@@ -21,6 +21,8 @@ package org.apache.flink.streaming.api.windowing.slices;
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
+import org.apache.flink.api.common.typeutils.base.MapSerializer;
+import org.apache.flink.api.java.typeutils.PojoTypeInfo;
 import org.apache.flink.streaming.api.datastream.OverSliceStream;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 
@@ -39,16 +41,19 @@ import java.util.Map;
  * @param <W> window type of the slice
  */
 public class SliceTypeInfo<T, K, W extends Window> extends TypeInformation<Slice<T, K, W>> {
-	private TypeInformation elementType;
-	private TypeInformation keyType;
-	private TypeInformation windowType;
+	private TypeInformation<T> elementType;
+	private TypeInformation<K> keyType;
+	private TypeInformation<W> windowType;
+	private TypeSerializer<W> windowTypeSerializer;
 
-	public SliceTypeInfo(TypeInformation elementType,
-						 TypeInformation keyType,
-						 TypeInformation windowType) {
+	public SliceTypeInfo(TypeInformation<T> elementType,
+						 TypeInformation<K> keyType,
+						 TypeInformation<W> windowType,
+						 TypeSerializer<W> windowTypeSerializer) {
 		this.elementType = elementType;
 		this.keyType = keyType;
 		this.windowType = windowType;
+		this.windowTypeSerializer = windowTypeSerializer;
 	}
 
 	@Override
@@ -58,7 +63,7 @@ public class SliceTypeInfo<T, K, W extends Window> extends TypeInformation<Slice
 
 	@Override
 	public boolean isTupleType() {
-		return false;
+		return true;
 	}
 
 	@Override
@@ -71,9 +76,10 @@ public class SliceTypeInfo<T, K, W extends Window> extends TypeInformation<Slice
 		return 0;
 	}
 
+	@SuppressWarnings("unchecked")
 	@Override
 	public Class<Slice<T, K, W>> getTypeClass() {
-		return null;
+		return (Class<Slice<T, K, W>>)(Class<?>)Slice.class;
 	}
 
 	@Override
@@ -84,7 +90,11 @@ public class SliceTypeInfo<T, K, W extends Window> extends TypeInformation<Slice
 	// Needs override for better serialization
 	@Override
 	public TypeSerializer<Slice<T, K, W>> createSerializer(ExecutionConfig config) {
-		return null;
+		TypeSerializer<K> keyTypeSerializer = keyType.createSerializer(config);
+		TypeSerializer<T> elementTypeSerializer = elementType.createSerializer(config);
+		TypeSerializer<W> windowTypeSerializer = this.windowTypeSerializer;
+
+		return new SliceSerializer<>(keyTypeSerializer, elementTypeSerializer, windowTypeSerializer);
 	}
 
 	@Override
