@@ -20,6 +20,7 @@ package org.apache.flink.streaming.runtime.operators.windowing;
 
 import org.apache.flink.api.common.ExecutionConfig;
 import org.apache.flink.api.common.functions.ReduceFunction;
+import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.ReducingStateDescriptor;
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeHint;
@@ -27,9 +28,11 @@ import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.checkpoint.OperatorSubtaskState;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.PassThroughWindowFunction;
+import org.apache.flink.streaming.api.functions.windowing.RichWindowFunction;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.watermark.Watermark;
 import org.apache.flink.streaming.api.windowing.assigners.SliceAssigner;
@@ -38,20 +41,27 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.EventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalSingleValueWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedOneInputStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.OneInputStreamOperatorTestHarness;
 import org.apache.flink.streaming.util.TestHarnessUtil;
+import org.apache.flink.util.Collector;
 import org.apache.flink.util.OutputTag;
 import org.apache.flink.util.TestLogger;
 import org.junit.Test;
 
 import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
+import java.util.Iterator;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import static org.junit.Assert.fail;
 
 /**
  * Tests for {@link WindowOperator}.
@@ -165,6 +175,101 @@ public class SliceOperatorTest extends TestLogger {
 		testEventTimeSlicing(operator);
 	}
 
+	private void testEventTimeSlicingIterable(OneInputStreamOperator<Tuple2<String, Integer>, Slice<Iterable<Tuple2<String, Integer>>, String, TimeWindow>> operator) throws Exception {
+		OneInputStreamOperatorTestHarness<Tuple2<String, Integer>, Slice<Iterable<Tuple2<String, Integer>>, String, TimeWindow>> testHarness =
+			createTestHarness(operator);
+
+		ConcurrentLinkedQueue<Object> expectedOutput = new ConcurrentLinkedQueue<>();
+
+		testHarness.open();
+
+		// add elements out-of-order
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 3999));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 3000));
+
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key1", 1), 20));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key1", 1), 0));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key1", 1), 999));
+
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1998));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1999));
+		testHarness.processElement(new StreamRecord<>(new Tuple2<>("key2", 1), 1000));
+
+		testHarness.processWatermark(new Watermark(999));
+		expectedOutput.add(new Watermark(999));
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(1999));
+		expectedOutput.add(new Watermark(1999));
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+
+		// do a snapshot, close and restore again
+		OperatorSubtaskState snapshot = testHarness.snapshot(0L, 0L);
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new Tuple2ResultSortComparator());
+		testHarness.close();
+
+		testHarness = createTestHarness(operator);
+		expectedOutput.clear();
+		testHarness.setup();
+		testHarness.initializeState(snapshot);
+		testHarness.open();
+
+		testHarness.processWatermark(new Watermark(2999));
+		expectedOutput.add(new StreamRecord<>(new Slice<>(Arrays.asList(
+			new Tuple2<>("key1", 1), new Tuple2<>("key1", 1), new Tuple2<>("key1", 1)), "key1", new TimeWindow(0, 3000)), 2999));
+		expectedOutput.add(new StreamRecord<>(new Slice<>(Arrays.asList(
+			new Tuple2<>("key2", 1), new Tuple2<>("key2", 1), new Tuple2<>("key2", 1)), "key2", new TimeWindow(0, 3000)), 2999));
+		expectedOutput.add(new Watermark(2999));
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new IterableTuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(3999));
+		expectedOutput.add(new Watermark(3999));
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new IterableTuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(4999));
+		expectedOutput.add(new Watermark(4999));
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new IterableTuple2ResultSortComparator());
+
+		testHarness.processWatermark(new Watermark(5999));
+		expectedOutput.add(new StreamRecord<>(new Slice<>(Arrays.asList(
+			new Tuple2<>("key2", 1), new Tuple2<>("key2", 1)), "key2", new TimeWindow(3000, 6000)), 5999));
+		expectedOutput.add(new Watermark(5999));
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new IterableTuple2ResultSortComparator());
+
+		// those don't have any effect...
+		testHarness.processWatermark(new Watermark(6999));
+		testHarness.processWatermark(new Watermark(7999));
+		expectedOutput.add(new Watermark(6999));
+		expectedOutput.add(new Watermark(7999));
+
+		TestHarnessUtil.assertObjectOutputEqualsSorted("Output was not correct.", expectedOutput, testHarness.getOutput(), new IterableTuple2ResultSortComparator());
+
+		testHarness.close();
+	}
+
+	@Test
+	public void testEventTimeSlicingIterable() throws Exception {
+		closeCalled.set(0);
+
+		final int windowSize = 3;
+
+		ListStateDescriptor<Tuple2<String, Integer>> stateDesc = new ListStateDescriptor<>("window-contents",
+			STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
+
+		SliceOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, TimeWindow> operator = new SliceOperator<>(
+			new TumbleSliceAssigner(Time.of(windowSize, TimeUnit.SECONDS).toMilliseconds(), 0L),
+			new TimeWindow.Serializer(),
+			new TupleKeySelector(),
+			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
+			stateDesc,
+			new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<String, TimeWindow, Iterable<Tuple2<String, Integer>>>()),
+			EventTimeTrigger.create(),
+			0,
+			null /* late data output tag */);
+
+		testEventTimeSlicingIterable(operator);
+	}
+
 	// ------------------------------------------------------------------------
 	//  UDFs
 	// ------------------------------------------------------------------------
@@ -175,6 +280,45 @@ public class SliceOperatorTest extends TestLogger {
 		public Tuple2<String, Integer> reduce(Tuple2<String, Integer> value1,
 				Tuple2<String, Integer> value2) throws Exception {
 			return new Tuple2<>(value2.f0, value1.f1 + value2.f1);
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static class IterableTuple2ResultSortComparator implements Comparator<Object>, Serializable {
+		private static RawTuple2ResultSortComparator cmp = new RawTuple2ResultSortComparator();
+		@Override
+		public int compare(Object o1, Object o2) {
+
+			if (o1 instanceof Watermark || o2 instanceof Watermark) {
+				return 0;
+			} else {
+				StreamRecord<Slice<Iterable<Tuple2<String, Integer>>, String, TimeWindow>> sr0 = (StreamRecord<Slice<Iterable<Tuple2<String, Integer>>, String, TimeWindow>>) o1;
+				StreamRecord<Slice<Iterable<Tuple2<String, Integer>>, String, TimeWindow>> sr1 = (StreamRecord<Slice<Iterable<Tuple2<String, Integer>>, String, TimeWindow>>) o2;
+				Tuple2<String, Integer>[] arr0 = toArray(sr0.getValue().getContent());
+				Tuple2<String, Integer>[] arr1 = toArray(sr1.getValue().getContent());
+				for (int i=0; i<Math.min(arr0.length, arr1.length); i++) {
+					int val = cmp.compare(arr0[i], arr1[i]);
+					if (val != 0) {
+						return val;
+					}
+				}
+				if (arr0.length > arr1.length) {
+					return cmp.compare(arr0[arr1.length], null);
+				} else if (arr1.length > arr0.length) {
+					return cmp.compare(null, arr1[arr0.length]);
+				} else {
+					return 0;
+				}
+			}
+		}
+
+		private static Tuple2<String, Integer>[] toArray(Iterable<Tuple2<String, Integer>> itr) {
+			ArrayList<Tuple2<String, Integer>> ret = new ArrayList<>();
+			for (Tuple2<String, Integer> t : itr) {
+				ret.add(t);
+			}
+			ret.sort(cmp);
+			return ret.toArray(new Tuple2[0]);
 		}
 	}
 
@@ -208,6 +352,23 @@ public class SliceOperatorTest extends TestLogger {
 				}
 				long comp4 = sr0.getValue().getWindow().getEnd() - sr1.getValue().getWindow().getEnd();
 				return new Long(comp4).intValue();
+			}
+		}
+	}
+
+	@SuppressWarnings("unchecked")
+	private static class RawTuple2ResultSortComparator implements Comparator<Object>, Serializable {
+		@Override
+		public int compare(Object o1, Object o2) {
+			if (o1 instanceof Tuple2 && o2 instanceof Tuple2) {
+				int comp = ((Tuple2<String, Integer>) o1).f0.compareTo(((Tuple2<String, Integer>)o2).f0);
+				if (comp != 0) {
+					return comp;
+				} else {
+					return ((Tuple2<String, Integer>) o1).f1.compareTo(((Tuple2<String, Integer>)o2).f1);
+				}
+			} else {
+				return 0;
 			}
 		}
 	}

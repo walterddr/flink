@@ -18,15 +18,18 @@
 
 package org.apache.flink.streaming.api.datastream;
 
+import org.apache.flink.annotation.Internal;
 import org.apache.flink.annotation.Public;
 import org.apache.flink.annotation.PublicEvolving;
 import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.functions.*;
 import org.apache.flink.api.common.state.AggregatingStateDescriptor;
+import org.apache.flink.api.common.state.ListStateDescriptor;
 import org.apache.flink.api.common.state.ReducingStateDescriptor;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.common.typeutils.TypeSerializer;
 import org.apache.flink.api.java.functions.KeySelector;
+import org.apache.flink.api.java.typeutils.IterableTypeInfo;
 import org.apache.flink.api.java.typeutils.TypeExtractor;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.streaming.api.functions.windowing.*;
@@ -247,7 +250,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 
 		return new OverSliceStream<>(
 			transform.keyBy((KeySelector<Slice<T, K, W>, K>) Slice::getKey),
-			windowFunction);
+			new SliceWindowFunction<>(windowFunction));
 	}
 
 	// ----------------------------------------------------
@@ -526,7 +529,7 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 
 		return new OverSliceStream<>(
 			transform.keyBy((KeySelector<Slice<ACC, K, W>, K>) Slice::getKey),
-			windowFunction);
+			new SliceWindowFunction<>(windowFunction));
 	}
 
 	// ------------------------------------------------------------------------
@@ -672,43 +675,9 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 //	}
 
 	// ------------------------------------------------------------------------
-	//  Window Function (apply) - TODO support this
+	//  Process Window Function - TODO: support this
 	// ------------------------------------------------------------------------
-//
-//	/**
-//	 * Applies the given window function to each window. The window function is called for each
-//	 * evaluation of the window for each key individually. The output of the window function is
-//	 * interpreted as a regular non-windowed stream.
-//	 *
-//	 * <p>Not that this function requires that all data in the windows is buffered until the window
-//	 * is evaluated, as the function provides no means of incremental aggregation.
-//	 *
-//	 * @param function The window function.
-//	 * @return The data stream that is the result of applying the window function to the window.
-//	 */
-//	public <R> OverSliceStream<R, K, W> applySlice(WindowFunction<T, R, K, W> function) {
-//		TypeInformation<R> resultType = getWindowFunctionReturnType(function, getInputType());
-//
-//		return applySlice(function, resultType);
-//	}
-//
-//	/**
-//	 * Applies the given window function to each window. The window function is called for each
-//	 * evaluation of the window for each key individually. The output of the window function is
-//	 * interpreted as a regular non-windowed stream.
-//	 *
-//	 * <p>Note that this function requires that all data in the windows is buffered until the window
-//	 * is evaluated, as the function provides no means of incremental aggregation.
-//	 *
-//	 * @param function The window function.
-//	 * @param resultType Type information for the result type of the window function
-//	 * @return The data stream that is the result of applying the window function to the window.
-//	 */
-//	public <R> OverSliceStream<R, K, W> applySlice(WindowFunction<T, R, K, W> function, TypeInformation<R> resultType) {
-//		function = input.getExecutionEnvironment().clean(function);
-//		return applySlice(new InternalIterableWindowFunction<>(function), resultType, function);
-//	}
-//
+
 //	/**
 //	 * Applies the given window function to each window. The window function is called for each
 //	 * evaluation of the window for each key individually. The output of the window function is
@@ -744,52 +713,64 @@ public class SlicedStream<T, K, W extends Window> extends WindowedStream<T, K, W
 //		function = input.getExecutionEnvironment().clean(function);
 //		return applySlice(new InternalIterableProcessWindowFunction<>(function), resultType, function);
 //	}
-//
-//	private <R> OverSliceStream<R, K, W> applySlice(InternalWindowFunction<Iterable<T>, R, K, W> function, TypeInformation<R> resultType, Function originalFunction) {
-//
-//		final String opName = generateOperatorName(sliceAssigner, trigger, originalFunction, null);
-//		KeySelector<T, K> keySel = input.getKeySelector();
-//
-//		WindowOperator<K, T, Iterable<T>, R, W> operator;
-//
-//		if (evictor != null) {
-//			@SuppressWarnings({"unchecked", "rawtypes"})
-//			TypeSerializer<StreamRecord<T>> streamRecordSerializer =
-//					(TypeSerializer<StreamRecord<T>>) new StreamElementSerializer(input.getType().createSerializer(getExecutionEnvironment().getConfig()));
-//
-//			ListStateDescriptor<StreamRecord<T>> stateDesc =
-//					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
-//
-//			operator =
-//				new EvictingWindowOperator<>(sliceAssigner,
-//					sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
-//					keySel,
-//					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
-//					stateDesc,
-//					function,
-//					trigger,
-//					evictor,
-//					allowedLateness,
-//					lateDataOutputTag);
-//
-//		} else {
-//			ListStateDescriptor<T> stateDesc = new ListStateDescriptor<>("window-contents",
-//				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
-//
-//			operator =
-//				new WindowOperator<>(sliceAssigner,
-//					sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
-//					keySel,
-//					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
-//					stateDesc,
-//					function,
-//					trigger,
-//					allowedLateness,
-//					lateDataOutputTag);
-//		}
-//
-//		return input.transform(opName, resultType, operator);
-//	}
+
+
+	// ------------------------------------------------------------------------
+	//  Window Function (apply) -
+	// ------------------------------------------------------------------------
+
+	/**
+	 * Applies the given window function to each window. The window function is called for each
+	 * evaluation of the window for each key individually. The output of the window function is
+	 * interpreted as a regular non-windowed stream.
+	 *
+	 * <p>Not that this function requires that all data in the windows is buffered until the window
+	 * is evaluated, as the function provides no means of incremental aggregation.
+	 *
+	 * @param function The window function.
+	 * @return The data stream that is the result of applying the window function to the window.
+	 */
+	public <R> OverSliceStream<Iterable<T>, R, K, W> applySlice(WindowFunction<T, R, K, W> function) {
+		TypeInformation<R> resultType = getWindowFunctionReturnType(function, getInputType());
+
+		return applySlice(function, resultType);
+	}
+
+	private <R> OverSliceStream<Iterable<T>, R, K, W> applySlice(WindowFunction<T, R, K, W> function, TypeInformation<R> resultType) {
+
+		final String opName = generateOperatorName(sliceAssigner, trigger, null, function);
+		KeySelector<T, K> keySel = input.getKeySelector();
+
+		OneInputStreamOperator<T, Slice<Iterable<T>, K, W>> operator;
+
+		ListStateDescriptor<T> stateDesc = new ListStateDescriptor<>("window-contents",
+			input.getType().createSerializer(getExecutionEnvironment().getConfig()));
+
+		TypeSerializer<W> windowSerializer = sliceAssigner.getWindowSerializer(getExecutionEnvironment().getConfig());
+
+		operator =
+			new SliceOperator<>(sliceAssigner,
+				windowSerializer,
+				keySel,
+				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
+				stateDesc,
+				new InternalSingleValueWindowFunction<>(new PassThroughWindowFunction<K, W, Iterable<T>>()),
+				trigger,
+				allowedLateness,
+				lateDataOutputTag);
+
+		SingleOutputStreamOperator<Slice<Iterable<T>, K, W>> transform = input.transform(
+			opName,
+			new SliceTypeInfo<>(new IterableTypeInfo<>(input.getType()),
+				input.getKeyType(),
+				sliceAssigner.getWindowType(),
+				windowSerializer),
+			operator);
+
+		return new OverSliceStream<>(
+			transform.keyBy((KeySelector<Slice<Iterable<T>, K, W>, K>) Slice::getKey),
+			new IterableSliceWindowFunction<>(function));
+	}
 
 	private static String generateFunctionName(Function function) {
 		Class<? extends Function> functionClass = function.getClass();

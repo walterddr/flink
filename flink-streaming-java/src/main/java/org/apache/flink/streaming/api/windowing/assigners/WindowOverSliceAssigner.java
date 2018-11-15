@@ -19,14 +19,11 @@
 package org.apache.flink.streaming.api.windowing.assigners;
 
 import org.apache.flink.annotation.PublicEvolving;
-import org.apache.flink.api.common.ExecutionConfig;
-import org.apache.flink.api.common.typeutils.TypeSerializer;
-import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
+import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.streaming.api.windowing.slices.Slice;
-import org.apache.flink.streaming.api.windowing.triggers.Trigger;
+import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 
-import java.io.Serializable;
 import java.util.Collection;
 
 /**
@@ -37,8 +34,22 @@ import java.util.Collection;
  * @param <W> The type of {@code Window} that this assigner assigns.
  */
 @PublicEvolving
-public abstract class WindowOverSliceAssigner<T, K, W extends Window> extends WindowAssigner<Slice<T, K, W>, W> {
+public abstract class WindowOverSliceAssigner<T, K, W extends Window> extends WindowAssigner<Object, W> {
 	private static final long serialVersionUID = 1L;
 
+	public abstract TypeInformation<TimeWindow> getSliceType();
 
+	public abstract Collection<W> assignWindowsFromSlice(Slice<T, K, W> element, long timestamp, WindowAssignerContext context);
+
+	protected abstract Collection<W> assignWindowsFromTimestamp(long timestamp, WindowAssignerContext context);
+
+	@SuppressWarnings("unchecked")
+	@Override
+	public Collection<W> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
+		if (element instanceof Slice) {
+			return assignWindowsFromSlice((Slice<T, K, W>)element, timestamp, context);
+		} else {
+			return assignWindowsFromTimestamp(timestamp, context);
+		}
+	}
 }
