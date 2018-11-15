@@ -20,10 +20,12 @@ package org.apache.flink.streaming.api.datastream;
 
 import org.apache.flink.annotation.Public;
 import org.apache.flink.annotation.PublicEvolving;
+import org.apache.flink.annotation.VisibleForTesting;
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.common.functions.ReduceFunction;
 import org.apache.flink.api.java.functions.KeySelector;
-import org.apache.flink.shaded.guava18.com.google.common.collect.FluentIterable;
+import org.apache.flink.streaming.api.functions.windowing.IterableSliceWindowFunction;
+import org.apache.flink.streaming.api.functions.windowing.SliceWindowFunction;
 import org.apache.flink.streaming.api.functions.windowing.WindowFunction;
 import org.apache.flink.streaming.api.windowing.assigners.WindowOverSliceAssigner;
 import org.apache.flink.streaming.api.windowing.evictors.Evictor;
@@ -60,7 +62,7 @@ public class OverSliceStream<T, V, K, W extends Window> {
 	private final KeyedStream<Slice<T, K, W>, K> input;
 
 	/** The default window function passing through from the sliced stream */
-	private WindowFunction<T, V, K, W> defaultWindowFunction;
+	private WindowFunction<Slice<T, K, W>, V, K, W> defaultWindowFunction;
 
 	private final KeySelector<Slice<T, K, W>, K> keySel;
 
@@ -81,7 +83,7 @@ public class OverSliceStream<T, V, K, W extends Window> {
 
 	@PublicEvolving
 	public OverSliceStream(KeyedStream<Slice<T, K, W>, K> input,
-						   WindowFunction<T, V, K, W> defaultWindowFunction) {
+						   WindowFunction<Slice<T, K, W>, V, K, W> defaultWindowFunction) {
 		this.input = input;
 		this.defaultWindowFunction = defaultWindowFunction;
 		this.keySel = (KeySelector<Slice<T, K, W>, K>) Slice::getKey;
@@ -164,7 +166,7 @@ public class OverSliceStream<T, V, K, W extends Window> {
 	@PublicEvolving
 	public <R> SingleOutputStreamOperator<R> slideOver(
 		WindowOverSliceAssigner<T, K, W> assigner,
-		WindowFunction<T, R, K, W> windowFunction) {
+		WindowFunction<Slice<T, K, W>, R, K, W> windowFunction) {
 
 		WindowedStream<Slice<T, K, W>, K, W> windowedStream = new WindowedStream<>(input, assigner);
 		if (trigger != null) {
@@ -173,7 +175,7 @@ public class OverSliceStream<T, V, K, W extends Window> {
 		if (evictor != null) {
 			windowedStream = windowedStream.evictor(evictor);
 		}
-		return windowedStream.apply(wrapSliceFunction(windowFunction));
+		return windowedStream.apply(windowFunction);
 	}
 
 	// ------------------------------------------------------------------------
@@ -222,7 +224,8 @@ public class OverSliceStream<T, V, K, W extends Window> {
 	//  Function wrapper to process slice container
 	// ------------------------------------------------------------------------
 
-	private <R> AggregateFunction<Slice<T, K, W>, T, R> wrapSliceFunction(AggregateFunction<T, T, R> aggregateFunction) {
+	@VisibleForTesting
+	public static <T, K, W extends Window, R> AggregateFunction<Slice<T, K, W>, T, R> wrapSliceFunction(AggregateFunction<T, T, R> aggregateFunction) {
 		return new AggregateFunction<Slice<T, K, W>, T, R>() {
 			@Override
 			public T createAccumulator() {
@@ -246,7 +249,8 @@ public class OverSliceStream<T, V, K, W extends Window> {
 		};
 	}
 
-	private AggregateFunction<Slice<T, K, W>, T, T> wrapSliceFunction(ReduceFunction<T> reduceFunction) {
+	@VisibleForTesting
+	public static <T, K, W extends Window> AggregateFunction<Slice<T, K, W>, T, T> wrapSliceFunction(ReduceFunction<T> reduceFunction) {
 		return new AggregateFunction<Slice<T, K, W>, T, T>() {
 			@Override
 			public T createAccumulator() {
@@ -278,12 +282,14 @@ public class OverSliceStream<T, V, K, W extends Window> {
 		};
 	}
 
-	private <R> WindowFunction<Slice<T, K, W>, R, K, W> wrapSliceFunction(WindowFunction<T, R, K, W> windowFunction) {
-		return (WindowFunction<Slice<T, K, W>, R, K, W>) (key, window, input, out) -> windowFunction.apply(key,
-			window,
-			FluentIterable
-				.from(input)
-				.transform(Slice::getContent),
-			out);
+	@VisibleForTesting
+	public static <T, K, W extends Window, R> SliceWindowFunction<T, R, K, W> wrapSliceFunction(WindowFunction<T, R, K, W> windowFunction) {
+		return new SliceWindowFunction<>(windowFunction);
+	}
+
+
+	@VisibleForTesting
+	public static <T, K, W extends Window, R> IterableSliceWindowFunction<T, R, K, W> wrapSliceElementFunction(WindowFunction<T, R, K, W> windowFunction) {
+		return new IterableSliceWindowFunction<>(windowFunction);
 	}
 }
