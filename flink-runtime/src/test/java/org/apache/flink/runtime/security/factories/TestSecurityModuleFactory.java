@@ -16,17 +16,35 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.runtime.security.factories;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.modules.SecurityModule;
 
 /**
- * A {@link SecurityModuleFactory} for {@link ZooKeeperModule}.
+ * Test security module factory class for service provider discovery.
  */
-public class ZookeeperModuleFactory implements SecurityModuleFactory {
+public class TestSecurityModuleFactory implements SecurityModuleFactory {
 
 	@Override
 	public SecurityModule createModule(SecurityConfiguration securityConfig) {
-		return new ZooKeeperModule(securityConfig);
+		return new TestSecurityModule();
+	}
+
+	/**
+	 * Test security module class.
+	 */
+	public static class TestSecurityModule implements SecurityModule {
+		public boolean installed;
+
+		@Override
+		public void install() throws SecurityInstallException {
+			installed = true;
+		}
+
+		@Override
+		public void uninstall() throws SecurityInstallException {
+			installed = false;
+		}
 	}
 }

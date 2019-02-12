@@ -16,22 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.runtime.security.factories;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.modules.SecurityModule;
+import org.apache.flink.runtime.security.modules.ZooKeeperModule;
 
 /**
- * A factory for a {@link SecurityModule}. A factory can determine whether a {@link SecurityModule}
- * works in the given environment (for example, it can check whether Hadoop dependencies are
- * available) and can then create (or not) a module based on that.
+ * A {@link SecurityModuleFactory} for {@link ZooKeeperModule}.
  */
-@FunctionalInterface
-public interface SecurityModuleFactory {
+public class ZookeeperModuleFactory implements SecurityModuleFactory {
 
-	/**
-	 * Creates and returns a {@link SecurityModule}. This can return {@code null} if the type
-	 * of {@link SecurityModule} that this factory can create does not work in the current
-	 * environment.
-	 */
-	SecurityModule createModule(SecurityConfiguration securityConfig);
+	@Override
+	public SecurityModule createModule(SecurityConfiguration securityConfig) {
+		return new ZooKeeperModule(securityConfig);
+	}
 }

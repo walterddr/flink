@@ -16,15 +16,31 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security;
+package org.apache.flink.runtime.security.factories;
+
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.contexts.SecurityContext;
 
 import java.util.concurrent.Callable;
 
 /**
- * A security context with may be required to run a Callable.
+ * Test security context factory class for service provider discovery.
  */
-public interface SecurityContext {
+public class TestSecurityContextFactory implements SecurityContextFactory {
 
-	<T> T runSecured(Callable<T> securedCallable) throws Exception;
+	@Override
+	public SecurityContext createContext(SecurityConfiguration securityConfig) {
+		return new TestSecurityContext();
+	}
 
+	/**
+	 * Test security context class.
+	 */
+	public static class TestSecurityContext implements SecurityContext {
+
+		@Override
+		public <T> T runSecured(Callable<T> securedCallable) throws Exception {
+			return null;
+		}
+	}
 }
