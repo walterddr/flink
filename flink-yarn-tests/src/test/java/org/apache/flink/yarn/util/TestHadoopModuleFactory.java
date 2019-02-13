@@ -30,8 +30,10 @@ import org.apache.hadoop.conf.Configuration;
  */
 public class TestHadoopModuleFactory implements SecurityModuleFactory {
 
+	public static final String HADOOP_PROPERTY_CONFIG_KEY = "testing.hadoop.configuration";
+
 	@Override
 	public SecurityModule createModule(SecurityConfiguration securityConfig) {
-		return new HadoopModule(securityConfig, (Configuration) securityConfig.getProperty("testing.hadoop.configuration"));
+		return new HadoopModule(securityConfig, (Configuration) securityConfig.getProperty(HADOOP_PROPERTY_CONFIG_KEY));
 	}
 }

@@ -77,7 +77,7 @@ public class YARNSessionFIFOSecuredITCase extends YARNSessionFIFOITCase {
 				Collections.singletonList(TestHadoopModuleFactory.class.getCanonicalName())
 			);
 
-		securityConfig.setProperty("hadoop.configuration", YARN_CONFIGURATION);
+		securityConfig.setProperty(TestHadoopModuleFactory.HADOOP_PROPERTY_CONFIG_KEY, YARN_CONFIGURATION);
 
 		try {
 			TestingSecurityContext.install(securityConfig, SecureTestEnvironment.getClientSecurityConfigurationMap());

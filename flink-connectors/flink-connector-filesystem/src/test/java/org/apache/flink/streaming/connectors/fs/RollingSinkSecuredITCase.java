@@ -121,7 +121,7 @@ public class RollingSinkSecuredITCase extends RollingSinkITCase {
 				DefaultSecurityContextFactory.class.getName(),
 				Collections.singletonList(TestHadoopModuleFactory.class.getCanonicalName()));
 
-		ctx.setProperty("hadoop.configuration", conf);
+		ctx.setProperty(TestHadoopModuleFactory.HADOOP_PROPERTY_CONFIG_KEY, conf);
 
 		try {
 			TestingSecurityContext.install(ctx, SecureTestEnvironment.getClientSecurityConfigurationMap());
