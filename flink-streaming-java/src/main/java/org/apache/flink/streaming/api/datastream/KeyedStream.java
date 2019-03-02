@@ -55,18 +55,24 @@ import org.apache.flink.streaming.api.operators.StreamGroupedReduce;
 import org.apache.flink.streaming.api.operators.co.IntervalJoinOperator;
 import org.apache.flink.streaming.api.transformations.OneInputTransformation;
 import org.apache.flink.streaming.api.transformations.PartitionTransformation;
+import org.apache.flink.streaming.api.windowing.assigners.EventTimeSameWindows;
 import org.apache.flink.streaming.api.windowing.assigners.GlobalWindows;
+import org.apache.flink.streaming.api.windowing.assigners.ProcessingTimeSameWindows;
+import org.apache.flink.streaming.api.windowing.assigners.SameWindowAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.SlidingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingEventTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.TumblingProcessingTimeWindows;
 import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.evictors.CountEvictor;
+import org.apache.flink.streaming.api.windowing.evictors.Evictor;
+import org.apache.flink.streaming.api.windowing.evictors.TimeEvictor;
 import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.CountTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.PurgingTrigger;
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.api.windowing.windows.VoidWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.runtime.partitioner.KeyGroupStreamPartitioner;
 import org.apache.flink.streaming.runtime.partitioner.StreamPartitioner;
@@ -671,6 +677,45 @@ public class KeyedStream<T, KEY> extends DataStream<T> {
 	public <W extends Window> WindowedStream<T, KEY, W> window(WindowAssigner<? super T, W> assigner) {
 		return new WindowedStream<>(this, assigner);
 	}
+
+	/**
+	 *
+	 * @return
+	 */
+	@PublicEvolving
+	public OverStream<T, KEY> countOver(int elementCount) {
+		if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+			return over(ProcessingTimeSameWindows.create(), CountEvictor.of(elementCount));
+		} else {
+			return over(EventTimeSameWindows.create(), CountEvictor.of(elementCount));
+		}
+	}
+
+	/**
+	 *
+	 * @return
+	 */
+	@PublicEvolving
+	public OverStream<T, KEY> timeOver(Time timeRange) {
+		if (environment.getStreamTimeCharacteristic() == TimeCharacteristic.ProcessingTime) {
+			return over(ProcessingTimeSameWindows.create(), TimeEvictor.of(timeRange));
+		} else {
+			return over(EventTimeSameWindows.create(), TimeEvictor.of(timeRange));
+		}
+	}
+
+	/**
+	 * Windows this data stream to a {@code OverStream}
+	 *
+	 * @param assigner The {@code SameWindowAssigner} that assigns elements to windows.
+	 * @param evictor The {@code Evictor} that governs how elements are evict from the window.
+	 * @return The trigger over-window data stream.
+	 */
+	@PublicEvolving
+	public OverStream<T, KEY> over(SameWindowAssigner<? super T> assigner, Evictor<? super T, VoidWindow> evictor) {
+		return new OverStream<>(this, assigner, evictor);
+	}
+
 
 	// ------------------------------------------------------------------------
 	//  Non-Windowed aggregation operations
