@@ -23,7 +23,7 @@ import org.apache.flink.api.common.functions._
 import org.apache.flink.api.common.state.{FoldingStateDescriptor, ReducingStateDescriptor, ValueStateDescriptor}
 import org.apache.flink.api.common.typeinfo.TypeInformation
 import org.apache.flink.api.common.typeutils.TypeSerializer
-import org.apache.flink.streaming.api.datastream.{QueryableStateStream, DataStream => JavaStream, KeyedStream => KeyedJavaStream, WindowedStream => WindowedJavaStream}
+import org.apache.flink.streaming.api.datastream.{QueryableStateStream, DataStream => JavaStream, KeyedStream => KeyedJavaStream, OverStream => OverJavaStream, WindowedStream => WindowedJavaStream}
 import org.apache.flink.streaming.api.functions.aggregation.AggregationFunction.AggregationType
 import org.apache.flink.streaming.api.functions.aggregation.{ComparableAggregator, SumAggregator}
 import org.apache.flink.streaming.api.functions.co.ProcessJoinFunction
@@ -32,8 +32,9 @@ import org.apache.flink.streaming.api.functions.{KeyedProcessFunction, ProcessFu
 import org.apache.flink.streaming.api.operators.StreamGroupedReduce
 import org.apache.flink.streaming.api.scala.function.StatefulFunction
 import org.apache.flink.streaming.api.windowing.assigners._
+import org.apache.flink.streaming.api.windowing.evictors.Evictor
 import org.apache.flink.streaming.api.windowing.time.Time
-import org.apache.flink.streaming.api.windowing.windows.{GlobalWindow, TimeWindow, Window}
+import org.apache.flink.streaming.api.windowing.windows.{GlobalWindow, TimeWindow, VoidWindow, Window}
 import org.apache.flink.util.Collector
 
 @Public
@@ -284,6 +285,39 @@ class KeyedStream[T, K](javaStream: KeyedJavaStream[T, K]) extends DataStream[T]
   @PublicEvolving
   def window[W <: Window](assigner: WindowAssigner[_ >: T, W]): WindowedStream[T, K, W] = {
     new WindowedStream(new WindowedJavaStream[T, K, W](javaStream, assigner))
+  }
+
+  /**
+    *
+    * @param elementCount
+    * @return
+    */
+  @PublicEvolving
+  def countOver(elementCount: Int): OverStream[T, K] = {
+    new OverStream(javaStream.countOver(elementCount))
+  }
+
+  /**
+    *
+    * @param timeRange
+    * @return
+    */
+  @PublicEvolving
+  def timeOver(timeRange: Time): OverStream[T, K] = {
+    new OverStream(javaStream.timeOver(timeRange))
+  }
+
+  /**
+    *
+    * @param assigner
+    * @param evictor
+    * @tparam W
+    * @return
+    */
+  def over[W >: VoidWindow](
+      assigner: SameWindowAssigner[_ >: T],
+      evictor: Evictor[_ >: T, _ >: W]): OverStream[T, K] = {
+    new OverStream(new OverJavaStream[T, K](javaStream, assigner, evictor))
   }
 
   // ------------------------------------------------------------------------
