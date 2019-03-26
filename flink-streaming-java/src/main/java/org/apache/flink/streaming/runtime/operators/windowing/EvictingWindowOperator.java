@@ -28,12 +28,12 @@ import org.apache.flink.api.java.functions.KeySelector;
 import org.apache.flink.metrics.MetricGroup;
 import org.apache.flink.runtime.state.internal.InternalListState;
 import org.apache.flink.streaming.api.operators.InternalTimer;
-import org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner;
-import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.evictors.Evictor;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalMergingWindowAssigner;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalWindowAssigner;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.util.OutputTag;
@@ -56,7 +56,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <K> The type of key returned by the {@code KeySelector}.
  * @param <IN> The type of the incoming elements.
  * @param <OUT> The type of elements emitted by the {@code InternalWindowFunction}.
- * @param <W> The type of {@code Window} that the {@code WindowAssigner} assigns.
+ * @param <W> The type of {@code Window} that the {@code InternalWindowAssigner} assigns.
  */
 @Internal
 public class EvictingWindowOperator<K, IN, OUT, W extends Window>
@@ -80,7 +80,7 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 
 	// ------------------------------------------------------------------------
 
-	public EvictingWindowOperator(WindowAssigner<? super IN, W> windowAssigner,
+	public EvictingWindowOperator(InternalWindowAssigner<? super IN, W> windowAssigner,
 			TypeSerializer<W> windowSerializer,
 			KeySelector<IN, K> keySelector,
 			TypeSerializer<K> keySerializer,
@@ -108,7 +108,7 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 
 		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
 
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 			MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 
 			for (W window : elementWindows) {
@@ -248,7 +248,7 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 
 		MergingWindowSet<W> mergingWindows = null;
 
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 			mergingWindows = getMergingWindowSet();
 			W stateWindow = mergingWindows.getStateWindow(triggerContext.window);
 			if (stateWindow == null) {
@@ -295,7 +295,7 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 
 		MergingWindowSet<W> mergingWindows = null;
 
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 			mergingWindows = getMergingWindowSet();
 			W stateWindow = mergingWindows.getStateWindow(triggerContext.window);
 			if (stateWindow == null) {

@@ -28,6 +28,7 @@ import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.evictors.CountEvictor;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamElementSerializer;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
@@ -67,7 +68,7 @@ public class EvictingWindowOperatorContractTest extends WindowOperatorContractTe
 
 		@SuppressWarnings("unchecked")
 		EvictingWindowOperator<Integer, Integer, OUT, W> operator = new EvictingWindowOperator<>(
-				assigner,
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(assigner),
 				assigner.getWindowSerializer(new ExecutionConfig()),
 				keySelector,
 				IntSerializer.INSTANCE,

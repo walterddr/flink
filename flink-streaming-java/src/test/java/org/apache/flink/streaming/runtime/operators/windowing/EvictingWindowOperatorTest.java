@@ -44,6 +44,7 @@ import org.apache.flink.streaming.api.windowing.triggers.EventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamElementSerializer;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
@@ -86,7 +87,7 @@ public class EvictingWindowOperatorTest {
 			new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-			GlobalWindows.create(),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 			new GlobalWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -158,7 +159,7 @@ public class EvictingWindowOperatorTest {
 			new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-			GlobalWindows.create(),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 			new GlobalWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -225,7 +226,7 @@ public class EvictingWindowOperatorTest {
 			new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new EvictingWindowOperator<>(
-			TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 			new TimeWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -293,7 +294,7 @@ public class EvictingWindowOperatorTest {
 			new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-			GlobalWindows.create(),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 			new GlobalWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -359,7 +360,7 @@ public class EvictingWindowOperatorTest {
 			new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-			GlobalWindows.create(),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 			new GlobalWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -431,7 +432,7 @@ public class EvictingWindowOperatorTest {
 			new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-			GlobalWindows.create(),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 			new GlobalWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -500,7 +501,7 @@ public class EvictingWindowOperatorTest {
 				new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-				GlobalWindows.create(),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 				new GlobalWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -570,7 +571,7 @@ public class EvictingWindowOperatorTest {
 				new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new EvictingWindowOperator<>(
-			GlobalWindows.create(),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(GlobalWindows.create()),
 			new GlobalWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -637,7 +638,7 @@ public class EvictingWindowOperatorTest {
 				new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 		EvictingWindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new EvictingWindowOperator<>(
-			TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+			InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 			new TimeWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),

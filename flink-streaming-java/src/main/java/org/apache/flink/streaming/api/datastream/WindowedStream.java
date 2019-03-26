@@ -58,6 +58,7 @@ import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.runtime.operators.windowing.EvictingWindowOperator;
 import org.apache.flink.streaming.runtime.operators.windowing.WindowOperator;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalAggregateProcessWindowFunction;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableWindowFunction;
@@ -286,7 +287,7 @@ public class WindowedStream<T, K, W extends Window> {
 				new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -303,7 +304,7 @@ public class WindowedStream<T, K, W extends Window> {
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -372,7 +373,7 @@ public class WindowedStream<T, K, W extends Window> {
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 			operator =
-					new EvictingWindowOperator<>(windowAssigner,
+					new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 							windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 							keySel,
 							input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -389,7 +390,7 @@ public class WindowedStream<T, K, W extends Window> {
 					input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 
 			operator =
-					new WindowOperator<>(windowAssigner,
+					new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 							windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 							keySel,
 							input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -528,7 +529,7 @@ public class WindowedStream<T, K, W extends Window> {
 			ListStateDescriptor<StreamRecord<T>> stateDesc =
 				new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
-			operator = new EvictingWindowOperator<>(windowAssigner,
+			operator = new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 				windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 				keySel,
 				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -543,7 +544,7 @@ public class WindowedStream<T, K, W extends Window> {
 			FoldingStateDescriptor<T, ACC> stateDesc = new FoldingStateDescriptor<>("window-contents",
 				initialValue, foldFunction, foldAccumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
 
-			operator = new WindowOperator<>(windowAssigner,
+			operator = new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 				windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 				keySel,
 				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -636,7 +637,7 @@ public class WindowedStream<T, K, W extends Window> {
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 			operator =
-					new EvictingWindowOperator<>(windowAssigner,
+					new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 							windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 							keySel,
 							input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -654,7 +655,7 @@ public class WindowedStream<T, K, W extends Window> {
 					foldResultType.createSerializer(getExecutionEnvironment().getConfig()));
 
 			operator =
-					new WindowOperator<>(windowAssigner,
+					new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 							windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 							keySel,
 							input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -821,7 +822,7 @@ public class WindowedStream<T, K, W extends Window> {
 			ListStateDescriptor<StreamRecord<T>> stateDesc =
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
-			operator = new EvictingWindowOperator<>(windowAssigner,
+			operator = new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -836,7 +837,7 @@ public class WindowedStream<T, K, W extends Window> {
 			AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>("window-contents",
 					aggregateFunction, accumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
 
-			operator = new WindowOperator<>(windowAssigner,
+			operator = new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -971,7 +972,7 @@ public class WindowedStream<T, K, W extends Window> {
 			ListStateDescriptor<StreamRecord<T>> stateDesc =
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
-			operator = new EvictingWindowOperator<>(windowAssigner,
+			operator = new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -986,7 +987,7 @@ public class WindowedStream<T, K, W extends Window> {
 			AggregatingStateDescriptor<T, ACC, V> stateDesc = new AggregatingStateDescriptor<>("window-contents",
 					aggregateFunction, accumulatorType.createSerializer(getExecutionEnvironment().getConfig()));
 
-			operator = new WindowOperator<>(windowAssigner,
+			operator = new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1090,7 +1091,7 @@ public class WindowedStream<T, K, W extends Window> {
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1106,7 +1107,7 @@ public class WindowedStream<T, K, W extends Window> {
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1179,7 +1180,7 @@ public class WindowedStream<T, K, W extends Window> {
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1196,7 +1197,7 @@ public class WindowedStream<T, K, W extends Window> {
 				input.getType().createSerializer(getExecutionEnvironment().getConfig()));
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1274,7 +1275,7 @@ public class WindowedStream<T, K, W extends Window> {
 			ListStateDescriptor<StreamRecord<T>> stateDesc =
 					new ListStateDescriptor<>("window-contents", streamRecordSerializer);
 
-			operator = new EvictingWindowOperator<>(windowAssigner,
+			operator = new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 				windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 				keySel,
 				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1289,7 +1290,7 @@ public class WindowedStream<T, K, W extends Window> {
 			FoldingStateDescriptor<T, R> stateDesc = new FoldingStateDescriptor<>("window-contents",
 				initialValue, foldFunction, resultType.createSerializer(getExecutionEnvironment().getConfig()));
 
-			operator = new WindowOperator<>(windowAssigner,
+			operator = new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 				windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 				keySel,
 				input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),

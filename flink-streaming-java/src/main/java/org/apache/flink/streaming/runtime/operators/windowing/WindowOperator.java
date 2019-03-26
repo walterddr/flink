@@ -60,12 +60,12 @@ import org.apache.flink.streaming.api.operators.InternalTimerService;
 import org.apache.flink.streaming.api.operators.OneInputStreamOperator;
 import org.apache.flink.streaming.api.operators.TimestampedCollector;
 import org.apache.flink.streaming.api.operators.Triggerable;
-import org.apache.flink.streaming.api.windowing.assigners.BaseAlignedWindowAssigner;
-import org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner;
 import org.apache.flink.streaming.api.windowing.assigners.WindowAssigner;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalMergingWindowAssigner;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalWindowAssigner;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.util.OutputTag;
@@ -94,7 +94,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  * @param <K> The type of key returned by the {@code KeySelector}.
  * @param <IN> The type of the incoming elements.
  * @param <OUT> The type of elements emitted by the {@code InternalWindowFunction}.
- * @param <W> The type of {@code Window} that the {@code WindowAssigner} assigns.
+ * @param <W> The type of {@code Window} that the {@code InternalWindowAssigner} assigns.
  */
 @Internal
 public class WindowOperator<K, IN, ACC, OUT, W extends Window>
@@ -107,7 +107,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	// Configuration values and user functions
 	// ------------------------------------------------------------------------
 
-	protected final WindowAssigner<? super IN, W> windowAssigner;
+	protected final InternalWindowAssigner<? super IN, W> windowAssigner;
 
 	private final KeySelector<IN, K> keySelector;
 
@@ -180,7 +180,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 * Creates a new {@code WindowOperator} based on the given policies and user functions.
 	 */
 	public WindowOperator(
-			WindowAssigner<? super IN, W> windowAssigner,
+			InternalWindowAssigner<? super IN, W> windowAssigner,
 			TypeSerializer<W> windowSerializer,
 			KeySelector<IN, K> keySelector,
 			TypeSerializer<K> keySerializer,
@@ -191,11 +191,6 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			OutputTag<IN> lateDataOutputTag) {
 
 		super(windowFunction);
-
-		checkArgument(!(windowAssigner instanceof BaseAlignedWindowAssigner),
-			"The " + windowAssigner.getClass().getSimpleName() + " cannot be used with a WindowOperator. " +
-				"This assigner is only used with the AccumulatingProcessingTimeWindowOperator and " +
-				"the AggregatingProcessingTimeWindowOperator");
 
 		checkArgument(allowedLateness >= 0);
 
@@ -241,7 +236,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		}
 
 		// create the typed and helper states for merging windows
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 
 			// store a typed reference for the state of merging windows - sanity check
 			if (windowState instanceof InternalMergingState) {
@@ -300,7 +295,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 		final K key = this.<K>getKeyedStateBackend().getCurrentKey();
 
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 			MergingWindowSet<W> mergingWindows = getMergingWindowSet();
 
 			for (W window: elementWindows) {
@@ -430,7 +425,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 		MergingWindowSet<W> mergingWindows;
 
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 			mergingWindows = getMergingWindowSet();
 			W stateWindow = mergingWindows.getStateWindow(triggerContext.window);
 			if (stateWindow == null) {
@@ -476,7 +471,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 		MergingWindowSet<W> mergingWindows;
 
-		if (windowAssigner instanceof MergingWindowAssigner) {
+		if (windowAssigner instanceof InternalMergingWindowAssigner) {
 			mergingWindows = getMergingWindowSet();
 			W stateWindow = mergingWindows.getStateWindow(triggerContext.window);
 			if (stateWindow == null) {
@@ -564,7 +559,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 */
 	protected MergingWindowSet<W> getMergingWindowSet() throws Exception {
 		@SuppressWarnings("unchecked")
-		MergingWindowAssigner<? super IN, W> mergingAssigner = (MergingWindowAssigner<? super IN, W>) windowAssigner;
+		InternalMergingWindowAssigner<? super IN, W> mergingAssigner = (InternalMergingWindowAssigner<? super IN, W>) windowAssigner;
 		return new MergingWindowSet<>(mergingAssigner, mergingSetsState);
 	}
 
@@ -735,7 +730,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 		public WindowContext(W window) {
 			this.window = window;
-			this.windowState = windowAssigner instanceof MergingWindowAssigner ?
+			this.windowState = windowAssigner instanceof InternalMergingWindowAssigner ?
 				new MergingWindowStateStore(getKeyedStateBackend(), getExecutionConfig()) :
 				new PerWindowStateStore(getKeyedStateBackend(), getExecutionConfig());
 		}
@@ -991,7 +986,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 	@VisibleForTesting
 	public WindowAssigner<? super IN, W> getWindowAssigner() {
-		return windowAssigner;
+		return windowAssigner.getWindowAssigner();
 	}
 
 	@VisibleForTesting

@@ -29,6 +29,8 @@ import org.apache.flink.streaming.api.windowing.time.Time;
 import org.apache.flink.streaming.api.windowing.triggers.EventTimeTrigger;
 import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalMergingWindowAssigner;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 
@@ -74,7 +76,9 @@ public class MergingWindowSetTest {
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
 		MergingWindowSet<TimeWindow> windowSet =
-				new MergingWindowSet<>(new NonEagerlyMergingWindowAssigner(3000), mockState);
+				new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+					InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+						new NonEagerlyMergingWindowAssigner(3000)), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -103,7 +107,9 @@ public class MergingWindowSetTest {
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
 		MergingWindowSet<TimeWindow> windowSet =
-				new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -204,7 +210,10 @@ public class MergingWindowSetTest {
 		@SuppressWarnings("unchecked")
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -277,7 +286,10 @@ public class MergingWindowSetTest {
 		@SuppressWarnings("unchecked")
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -305,7 +317,10 @@ public class MergingWindowSetTest {
 		@SuppressWarnings("unchecked")
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -329,7 +344,10 @@ public class MergingWindowSetTest {
 		@SuppressWarnings("unchecked")
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -371,7 +389,10 @@ public class MergingWindowSetTest {
 				new Tuple2<>(new TimeWindow(1, 2), new TimeWindow(3, 4))
 		));
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		assertEquals(new TimeWindow(42, 17), windowSet.getStateWindow(new TimeWindow(17, 42)));
 		assertEquals(new TimeWindow(3, 4), windowSet.getStateWindow(new TimeWindow(1, 2)));
@@ -382,7 +403,10 @@ public class MergingWindowSetTest {
 		@SuppressWarnings("unchecked")
 		ListState<Tuple2<TimeWindow, TimeWindow>> mockState = mock(ListState.class);
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		TestingMergeFunction mergeFunction = new TestingMergeFunction();
 
@@ -409,7 +433,10 @@ public class MergingWindowSetTest {
 				new Tuple2<>(new TimeWindow(1, 2), new TimeWindow(3, 4))
 		));
 
-		MergingWindowSet<TimeWindow> windowSet = new MergingWindowSet<>(EventTimeSessionWindows.withGap(Time.milliseconds(3)), mockState);
+		MergingWindowSet<TimeWindow> windowSet =
+			new MergingWindowSet<>((InternalMergingWindowAssigner<Object, TimeWindow>)
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.milliseconds(3))), mockState);
 
 		assertEquals(new TimeWindow(42, 17), windowSet.getStateWindow(new TimeWindow(17, 42)));
 		assertEquals(new TimeWindow(3, 4), windowSet.getStateWindow(new TimeWindow(1, 2)));

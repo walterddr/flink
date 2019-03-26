@@ -56,6 +56,7 @@ import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.windows.Window;
 import org.apache.flink.streaming.runtime.operators.windowing.EvictingWindowOperator;
 import org.apache.flink.streaming.runtime.operators.windowing.WindowOperator;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalAggregateProcessAllWindowFunction;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableAllWindowFunction;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableProcessAllWindowFunction;
@@ -285,7 +286,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -304,7 +305,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -380,7 +381,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -399,7 +400,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -601,7 +602,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-					new EvictingWindowOperator<>(windowAssigner,
+					new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 							windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 							keySel,
 							input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -621,8 +622,7 @@ public class AllWindowedStream<T, W extends Window> {
 
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
-			operator = new WindowOperator<>(
-							windowAssigner,
+			operator = new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 							windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 							keySel,
 							input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -734,7 +734,7 @@ public class AllWindowedStream<T, W extends Window> {
 
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
-			operator = new EvictingWindowOperator<>(windowAssigner,
+			operator = new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -753,8 +753,7 @@ public class AllWindowedStream<T, W extends Window> {
 
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
-			operator = new WindowOperator<>(
-					windowAssigner,
+			operator = new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -894,7 +893,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -912,7 +911,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1005,7 +1004,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1023,7 +1022,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1133,7 +1132,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1151,7 +1150,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1229,7 +1228,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1248,7 +1247,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1332,7 +1331,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + evictor + ", " + udfName + ")";
 
 			operator =
-				new EvictingWindowOperator<>(windowAssigner,
+				new EvictingWindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),
@@ -1350,7 +1349,7 @@ public class AllWindowedStream<T, W extends Window> {
 			opName = "TriggerWindow(" + windowAssigner + ", " + stateDesc + ", " + trigger + ", " + udfName + ")";
 
 			operator =
-				new WindowOperator<>(windowAssigner,
+				new WindowOperator<>(InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(windowAssigner),
 					windowAssigner.getWindowSerializer(getExecutionEnvironment().getConfig()),
 					keySel,
 					input.getKeyType().createSerializer(getExecutionEnvironment().getConfig()),

@@ -60,6 +60,7 @@ import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.GlobalWindow;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableProcessWindowFunction;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalIterableWindowFunction;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalSingleValueProcessWindowFunction;
@@ -196,7 +197,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				SlidingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					SlidingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -220,7 +222,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				SlidingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					SlidingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -317,7 +320,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -341,7 +345,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -368,7 +373,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(sessionSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(sessionSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -443,7 +449,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(sessionSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(sessionSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -518,7 +525,8 @@ public class WindowOperatorTest extends TestLogger {
 				"window-contents", new SumReducer(), STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(sessionSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(sessionSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -589,7 +597,8 @@ public class WindowOperatorTest extends TestLogger {
 				"window-contents", new SumReducer(), STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(sessionSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(sessionSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -662,7 +671,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(sessionSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(sessionSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -732,7 +742,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-			EventTimeSessionWindows.withGap(Time.seconds(sessionSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+			EventTimeSessionWindows.withGap(Time.seconds(sessionSize))),
 			new TimeWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -808,7 +819,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-				new PointSessionWindows(3000),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				new PointSessionWindows(3000)),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -871,7 +883,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new WindowOperator<>(
-				GlobalWindows.create(),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				GlobalWindows.create()),
 				new GlobalWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -955,7 +968,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, GlobalWindow> operator = new WindowOperator<>(
-				GlobalWindows.create(),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				GlobalWindows.create()),
 				new GlobalWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -997,7 +1011,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		operator = new WindowOperator<>(
-				GlobalWindows.create(),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				GlobalWindows.create()),
 				new GlobalWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1042,7 +1057,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				TumblingProcessingTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingProcessingTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1099,7 +1115,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				SlidingProcessingTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				SlidingProcessingTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1169,7 +1186,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator = new WindowOperator<>(
-				ProcessingTimeSessionWindows.withGap(Time.of(windowGap, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				ProcessingTimeSessionWindows.withGap(Time.of(windowGap, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1249,7 +1267,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-			DynamicEventTimeSessionWindows.withDynamicGap(extractor),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+			DynamicEventTimeSessionWindows.withDynamicGap(extractor)),
 			new TimeWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1331,7 +1350,8 @@ public class WindowOperatorTest extends TestLogger {
 				STRING_INT_TUPLE.createSerializer(new ExecutionConfig()));
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple3<String, Long, Long>, TimeWindow> operator = new WindowOperator<>(
-			DynamicProcessingTimeSessionWindows.withDynamicGap(extractor),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+			DynamicProcessingTimeSessionWindows.withDynamicGap(extractor)),
 			new TimeWindow.Serializer(),
 			new TupleKeySelector(),
 			BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1400,7 +1420,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1468,7 +1489,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		final WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-					windowAssigner,
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					windowAssigner),
 					new TimeWindow.Serializer(),
 					new TupleKeySelector(),
 					BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1533,7 +1555,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1596,7 +1619,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				SlidingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				SlidingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS), Time.of(windowSlide, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1673,7 +1697,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1763,7 +1788,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1851,7 +1877,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -1936,7 +1963,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2035,7 +2063,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2124,7 +2153,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2214,7 +2244,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, String, TimeWindow> operator =
 			new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2267,7 +2298,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2312,7 +2344,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2368,7 +2401,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				TumblingEventTimeWindows.of(Time.of(windowSize, TimeUnit.SECONDS))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2412,7 +2446,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Iterable<Tuple2<String, Integer>>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2455,7 +2490,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple3<String, Long, Long>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+				EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),
@@ -2509,7 +2545,8 @@ public class WindowOperatorTest extends TestLogger {
 
 		WindowOperator<String, Tuple2<String, Integer>, Tuple2<String, Integer>, Tuple2<String, Integer>, TimeWindow> operator =
 			new WindowOperator<>(
-				EventTimeSessionWindows.withGap(Time.seconds(gapSize)),
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(
+					EventTimeSessionWindows.withGap(Time.seconds(gapSize))),
 				new TimeWindow.Serializer(),
 				new TupleKeySelector(),
 				BasicTypeInfo.STRING_TYPE_INFO.createSerializer(new ExecutionConfig()),

@@ -36,6 +36,7 @@ import org.apache.flink.streaming.api.windowing.triggers.Trigger;
 import org.apache.flink.streaming.api.windowing.triggers.TriggerResult;
 import org.apache.flink.streaming.api.windowing.windows.TimeWindow;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalDirectWindowAssignerCovertUtil;
 import org.apache.flink.streaming.runtime.operators.windowing.functions.InternalWindowFunction;
 import org.apache.flink.streaming.runtime.streamrecord.StreamRecord;
 import org.apache.flink.streaming.util.KeyedOneInputStreamOperatorTestHarness;
@@ -217,7 +218,7 @@ public class RegularWindowOperatorContractTest extends WindowOperatorContractTes
 
 		@SuppressWarnings("unchecked")
 		WindowOperator<Integer, Integer, ACC, OUT, W> operator = new WindowOperator<>(
-				assigner,
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(assigner),
 				assigner.getWindowSerializer(new ExecutionConfig()),
 				keySelector,
 				IntSerializer.INSTANCE,
@@ -255,7 +256,7 @@ public class RegularWindowOperatorContractTest extends WindowOperatorContractTes
 
 		@SuppressWarnings("unchecked")
 		WindowOperator<Integer, Integer, Iterable<Integer>, OUT, W> operator = new WindowOperator<>(
-				assigner,
+				InternalDirectWindowAssignerCovertUtil.getInternalWindowAssigner(assigner),
 				assigner.getWindowSerializer(new ExecutionConfig()),
 				keySelector,
 				IntSerializer.INSTANCE,

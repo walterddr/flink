@@ -22,6 +22,7 @@ import org.apache.flink.api.common.state.ListState;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.windowing.assigners.MergingWindowAssigner;
 import org.apache.flink.streaming.api.windowing.windows.Window;
+import org.apache.flink.streaming.runtime.operators.windowing.assigners.InternalMergingWindowAssigner;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,12 +74,12 @@ public class MergingWindowSet<W extends Window> {
 	/**
 	 * Our window assigner.
 	 */
-	private final MergingWindowAssigner<?, W> windowAssigner;
+	private final InternalMergingWindowAssigner<?, W> windowAssigner;
 
 	/**
 	 * Restores a {@link MergingWindowSet} from the given state.
 	 */
-	public MergingWindowSet(MergingWindowAssigner<?, W> windowAssigner, ListState<Tuple2<W, W>> state) throws Exception {
+	public MergingWindowSet(InternalMergingWindowAssigner<?, W> windowAssigner, ListState<Tuple2<W, W>> state) throws Exception {
 		this.windowAssigner = windowAssigner;
 		mapping = new HashMap<>();
 
