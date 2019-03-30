@@ -35,7 +35,9 @@ public interface InternalWindowAssigner<T, W extends Window> {
 
 	Collection<W> assignWindows(T element, long timestamp, WindowAssigner.WindowAssignerContext context);
 
-	Collection<W> getAffectedWindows(T element, long timestamp, WindowAssigner.WindowAssignerContext context);
+	Collection<W> assignAffectedWindows(T element, long timestamp, WindowAssigner.WindowAssignerContext context);
+
+	Collection<W> getAffectedWindows(W associatedWindow, long timestamp, WindowAssigner.WindowAssignerContext context);
 
 	Collection<W> getAssociatedWindows(W affectedWindow, long timestamp, WindowAssigner.WindowAssignerContext context);
 

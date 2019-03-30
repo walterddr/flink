@@ -50,8 +50,13 @@ public class InternalDirectMergingWindowAssigner<T, W extends Window>
 	}
 
 	@Override
-	public Collection<W> getAffectedWindows(T element, long timestamp, WindowAssigner.WindowAssignerContext context) {
+	public Collection<W> assignAffectedWindows(T element, long timestamp, WindowAssigner.WindowAssignerContext context) {
 		return windowAssigner.assignWindows(element, timestamp, context);
+	}
+
+	@Override
+	public Collection<W> getAffectedWindows(W associatedWindow, long timestamp, WindowAssigner.WindowAssignerContext context) {
+		return Collections.singletonList(associatedWindow);
 	}
 
 	@Override

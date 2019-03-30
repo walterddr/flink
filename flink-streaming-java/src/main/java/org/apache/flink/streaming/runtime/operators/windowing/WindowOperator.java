@@ -287,7 +287,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
-		final Collection<W> elementWindows = windowAssigner.assignWindows(
+		final Collection<W> elementWindows = windowAssigner.assignAffectedWindows(
 			element.getValue(), element.getTimestamp(), windowAssignerContext);
 
 		//if element is handled by none of assigned elementWindows
@@ -376,7 +376,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		} else {
 			for (W window: elementWindows) {
 
-				// drop if the window is already late
+				// drop if the affected element window is already late
 				if (isWindowLate(window)) {
 					continue;
 				}
@@ -385,23 +385,34 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				windowState.setCurrentNamespace(window);
 				windowState.add(element.getValue());
 
-				triggerContext.key = key;
-				triggerContext.window = window;
+				Collection<W> actualWindows = windowAssigner.getAssociatedWindows(
+					window, element.getTimestamp(), windowAssignerContext);
 
-				TriggerResult triggerResult = triggerContext.onElement(element);
-
-				if (triggerResult.isFire()) {
-					ACC contents = windowState.get();
-					if (contents == null) {
+				for (W actualWindow : actualWindows) {
+					// continue if the actual associated window is late
+					if (isWindowLate(actualWindow)) {
 						continue;
 					}
-					emitWindowContents(window, contents);
-				}
+					isSkippedElement = false;
 
-				if (triggerResult.isPurge()) {
-					windowState.clear();
+					triggerContext.key = key;
+					triggerContext.window = actualWindow;
+
+					TriggerResult triggerResult = triggerContext.onElement(element);
+
+					if (triggerResult.isFire()) {
+						ACC contents = windowState.get();
+						if (contents == null) {
+							continue;
+						}
+						emitWindowContents(actualWindow, contents);
+					}
+
+					if (triggerResult.isPurge()) {
+						windowState.clear();
+					}
+					registerCleanupTimer(actualWindow);
 				}
-				registerCleanupTimer(window);
 			}
 		}
 
@@ -454,8 +465,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			windowState.clear();
 		}
 
-		if (windowAssigner.isEventTime() && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
-			clearAllState(triggerContext.window, windowState, mergingWindows);
+		if (windowAssigner.isEventTime()) {
+			cleanupWindows(triggerContext.window, windowState, mergingWindows, timer.getTimestamp());
 		}
 
 		if (mergingWindows != null) {
@@ -500,8 +511,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			windowState.clear();
 		}
 
-		if (!windowAssigner.isEventTime() && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
-			clearAllState(triggerContext.window, windowState, mergingWindows);
+		if (!windowAssigner.isEventTime()) {
+			cleanupWindows(triggerContext.window, windowState, mergingWindows, timer.getTimestamp());
 		}
 
 		if (mergingWindows != null) {
@@ -517,18 +528,34 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 * <p>The caller must ensure that the
 	 * correct key is set in the state backend and the triggerContext object.
 	 */
-	private void clearAllState(
+	private void cleanupWindows(
 			W window,
-			AppendingState<IN, ACC> windowState,
-			MergingWindowSet<W> mergingWindows) throws Exception {
-		windowState.clear();
-		triggerContext.clear();
+			InternalAppendingState<K, W, IN, ACC, ACC> windowState,
+			MergingWindowSet<W> mergingWindows,
+			long timestamp) throws Exception {
+
+		// Clear each pane individually
+		Collection<W> affectedWindows = windowAssigner.getAffectedWindows(
+			window, timestamp, windowAssignerContext);
+
+		for (W affectedWindow: affectedWindows) {
+			if (isCleanupTime(affectedWindow, timestamp)) {
+				triggerContext.window = affectedWindow;
+				triggerContext.clear();
+				windowState.setCurrentNamespace(affectedWindow);
+				windowState.clear();
+			}
+		}
+
+		// Merging window does not support pane-based assigner
+		if (mergingWindows != null) {
+			if (isCleanupTime(window, timestamp)) {
+				mergingWindows.retireWindow(window);
+				mergingWindows.persist();
+			}
+		}
 		processContext.window = window;
 		processContext.clear();
-		if (mergingWindows != null) {
-			mergingWindows.retireWindow(window);
-			mergingWindows.persist();
-		}
 	}
 
 	/**
