@@ -280,6 +280,29 @@ class CalcITCase extends AbstractTestBase {
   }
 
   @Test
+  def testScalarFunction(): Unit = {
+    val env = StreamExecutionEnvironment.getExecutionEnvironment
+    val tEnv = StreamTableEnvironment.create(env)
+
+    StreamITCase.testResults = mutable.MutableList()
+
+    val testData = new mutable.MutableList[(Int, String)]
+    testData.+=((1, "2017-11-29 22:58:58.998"))
+    testData.+=((-1000, "2017-11-29 22:58:58.998"))
+
+    val t = env.fromCollection(testData).toTable(tEnv).as('a, 'b)
+    val result = t.select('b.toTimestamp + 'a.years)
+
+    result.addSink(new StreamITCase.StringSink[Row])
+    env.execute()
+
+    val expected = mutable.MutableList(
+      "2018-11-29 22:58:58.998",
+      "1017-11-29 22:58:58.998")
+    assertEquals(expected.sorted, StreamITCase.testResults.sorted)
+  }
+
+  @Test
   def testScalarFunctionConstructorWithParams(): Unit = {
     val env = StreamExecutionEnvironment.getExecutionEnvironment
     val tEnv = StreamTableEnvironment.create(env)
