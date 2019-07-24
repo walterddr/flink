@@ -19,6 +19,7 @@
 package org.apache.flink.table.runtime.stream.sql;
 
 import org.apache.flink.api.common.typeinfo.BasicTypeInfo;
+import org.apache.flink.api.common.typeinfo.SqlTimeTypeInfo;
 import org.apache.flink.api.common.typeinfo.TypeInformation;
 import org.apache.flink.api.java.tuple.Tuple3;
 import org.apache.flink.api.java.tuple.Tuple5;
@@ -29,6 +30,7 @@ import org.apache.flink.table.api.Table;
 import org.apache.flink.table.api.java.StreamTableEnvironment;
 import org.apache.flink.table.runtime.utils.JavaStreamTestData;
 import org.apache.flink.table.runtime.utils.StreamITCase;
+import org.apache.flink.table.typeutils.TimeIndicatorTypeInfo;
 import org.apache.flink.test.util.AbstractTestBase;
 import org.apache.flink.types.Row;
 
@@ -41,6 +43,48 @@ import java.util.List;
  * Integration tests for streaming SQL.
  */
 public class JavaSqlITCase extends AbstractTestBase {
+
+	@Test
+	public void testTest() throws Exception {
+		final String tableName = "MyTable";
+		StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+		StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
+		StreamITCase.clear();
+
+		List<Row> data = new ArrayList<>();
+		data.add(Row.of(1, 1L, "Hi"));
+		data.add(Row.of(2, 2L, "Hello"));
+		data.add(Row.of(3, 2L, "Hello world"));
+
+		TypeInformation<?>[] types = {
+			BasicTypeInfo.INT_TYPE_INFO,
+//			BasicTypeInfo.LONG_TYPE_INFO,
+			TimeIndicatorTypeInfo.ROWTIME_INDICATOR(),
+			BasicTypeInfo.STRING_TYPE_INFO};
+		String[] names = {"a", "b", "c"};
+
+		RowTypeInfo typeInfo = new RowTypeInfo(types, names);
+
+		DataStream<Row> ds = env.fromCollection(data).returns(typeInfo);
+
+		Table sourceTable = tableEnv.fromDataStream(ds, "a,b,c");
+		tableEnv.registerTable("MyTableRow", sourceTable);
+
+		DataStream<Row> stream = tableEnv.toAppendStream(sourceTable, Row.class)
+			.map(a -> a)
+			.returns(sourceTable.getSchema().toRowType());
+		stream.print();
+
+		stream.addSink(new StreamITCase.StringSink<Row>());
+		env.execute();
+
+		List<String> expected = new ArrayList<>();
+		expected.add("1,1,Hi");
+		expected.add("2,2,Hello");
+		expected.add("3,2,Hello world");
+
+		StreamITCase.compareWithList(expected);
+	}
 
 	@Test
 	public void testRowRegisterRowWithNames() throws Exception {
