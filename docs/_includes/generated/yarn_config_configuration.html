@@ -23,6 +23,11 @@
             <td>With this configuration option, users can specify a port, a range of ports or a list of ports for the Application Master (and JobManager) RPC port. By default we recommend using the default value (0) to let the operating system choose an appropriate port. In particular when multiple AMs are running on the same physical host, fixed port assignments prevent the AM from starting. For example when running Flink on YARN on an environment with a restrictive firewall, this option allows specifying a range of allowed ports.</td>
         </tr>
         <tr>
+            <td><h5>yarn.application.priority</h5></td>
+            <td style="word-wrap: break-word;">-1</td>
+            <td>The priority which Flink used to submit YARN application. The priority is non negative, the bigger the number, the higher the priority. By default, we take -1. When the priority is negative, we use default yarn queue priority.</td>
+        </tr>
+        <tr>
             <td><h5>yarn.appmaster.rpc.address</h5></td>
             <td style="word-wrap: break-word;">(none)</td>
             <td>The hostname or address where the application master RPC system is listening.</td>

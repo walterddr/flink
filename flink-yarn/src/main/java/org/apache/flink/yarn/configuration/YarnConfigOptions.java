@@ -181,6 +181,17 @@ public class YarnConfigOptions {
 			" allowed ports.");
 
 	/**
+	 * The priority which Flink used to submit YARN application. The priority is non negative, the bigger the number,
+	 * the higher the priority. By default, we take -1. When the priority is negative, we use default yarn queue priority.
+	 */
+	public static final ConfigOption<Integer> APPLICATION_PRIORITY =
+		key("yarn.application.priority")
+			.defaultValue(-1)
+			.withDescription("The priority which Flink used to submit YARN application. The priority is non negative," +
+				" the bigger the number, the higher the priority. By default, we take -1. When the priority is negative," +
+				" we use default yarn queue priority.");
+
+	/**
 	 * A comma-separated list of strings to use as YARN application tags.
 	 */
 	public static final ConfigOption<String> APPLICATION_TAGS =
