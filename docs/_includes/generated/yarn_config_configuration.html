@@ -25,7 +25,7 @@
         <tr>
             <td><h5>yarn.application.priority</h5></td>
             <td style="word-wrap: break-word;">-1</td>
-            <td>The priority which Flink used to submit YARN application. The priority is non negative, the bigger the number, the higher the priority. By default, we take -1. When the priority is negative, we use default yarn queue priority.</td>
+            <td>A non-negative integer indicating the priority for submitting a Flink YARN application. It will only take effect if YARN priority scheduling setting is enabled. Larger integer corresponds with higher priority. If priority is negative or set to '-1'(default), Flink will unset yarn priority setting and use cluster default priority, see <a href="https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/CapacityScheduler.html">YARN Capacity Scheduling Doc</a> for more information.</td>
         </tr>
         <tr>
             <td><h5>yarn.appmaster.rpc.address</h5></td>

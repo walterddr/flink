@@ -181,15 +181,21 @@ public class YarnConfigOptions {
 			" allowed ports.");
 
 	/**
-	 * The priority which Flink used to submit YARN application. The priority is non negative, the bigger the number,
-	 * the higher the priority. By default, we take -1. When the priority is negative, we use default yarn queue priority.
+	 * A non-negative integer indicating the priority for submitting a Flink YARN application. It will only take effect
+	 * if YARN priority scheduling setting is enabled. Larger integer corresponds with higher priority. If priority
+	 * is negative or set to '-1'(default), Flink will unset yarn priority setting and use cluster default priority.
+	 *
+	 * @see <a href="https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/CapacityScheduler.html">YARN Capacity Scheduling Doc</a>
 	 */
 	public static final ConfigOption<Integer> APPLICATION_PRIORITY =
 		key("yarn.application.priority")
 			.defaultValue(-1)
-			.withDescription("The priority which Flink used to submit YARN application. The priority is non negative," +
-				" the bigger the number, the higher the priority. By default, we take -1. When the priority is negative," +
-				" we use default yarn queue priority.");
+			.withDescription(Description.builder()
+				.text("A non-negative integer indicating the priority for submitting a Flink YARN application. It will only take effect" +
+					" if YARN priority scheduling setting is enabled. Larger integer corresponds with higher priority." +
+					" If priority is negative or set to '-1'(default), Flink will unset yarn priority setting and use cluster default priority," +
+					" see %s for more information.", link("https://hadoop.apache.org/docs/current/hadoop-yarn/hadoop-yarn-site/CapacityScheduler.html", "YARN Capacity Scheduling Doc"))
+				.build());
 
 	/**
 	 * A comma-separated list of strings to use as YARN application tags.
