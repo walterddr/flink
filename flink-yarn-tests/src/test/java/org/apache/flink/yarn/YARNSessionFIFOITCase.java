@@ -121,6 +121,8 @@ public class YARNSessionFIFOITCase extends YarnTestBase {
 				args.add("-D" + SecurityOptions.KERBEROS_LOGIN_PRINCIPAL.key() + "=" + SecureTestEnvironment.getHadoopServicePrincipal());
 			}
 
+			args.add("-D" + YarnConfigOptions.APPLICATION_PRIORITY.key() + "=" + "1");
+
 			args.add("--name");
 			args.add("MyCustomName");
 
