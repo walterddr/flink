@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.apache.flink.ml.common.statistics.basicstatistic;
+package org.apache.flink.ml.operator.common.statistics.basicstatistic;
 
 import org.apache.flink.ml.common.linalg.DenseMatrix;
 import org.apache.flink.ml.common.utils.TableUtil;
@@ -36,7 +36,7 @@ public class CorrelationResult {
 	public DenseMatrix correlation;
 
 	/**
-	 * if colNames is null, it is vector correlation result.
+	 * If it is vector correlation, colNames is null.
 	 */
 	public String[] colNames;
 
