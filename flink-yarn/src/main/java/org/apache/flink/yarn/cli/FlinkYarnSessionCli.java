@@ -133,6 +133,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine {
 	private final Option slots;
 	private final Option zookeeperNamespace;
 	private final Option nodeLabel;
+	private final Option preUploadedFlinkPath;
 	private final Option help;
 	private final Option name;
 	private final Option applicationType;
@@ -206,6 +207,10 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine {
 		applicationType = new Option(shortPrefix + "at", longPrefix + "applicationType", true, "Set a custom application type for the application on YARN");
 		zookeeperNamespace = new Option(shortPrefix + "z", longPrefix + "zookeeperNamespace", true, "Namespace to create the Zookeeper sub-paths for high availability mode");
 		nodeLabel = new Option(shortPrefix + "nl", longPrefix + "nodeLabel", true, "Specify YARN node label for the YARN application");
+		preUploadedFlinkPath = new Option(shortPrefix + "pl", longPrefix + "preUpload", true,
+			"Upload a copy of Flink binary beforehand and specify the path to avoid uploading local resources. " +
+				"The pre-uploaded Flink binary should be publicly accessible and will be registered as public resource to reduce unnecessary downloading jars. " +
+				"(eg: -" + shortPrefix + "pl hdfs://$namenode_address/flink/release-x.x)");
 		help = new Option(shortPrefix + "h", longPrefix + "help", false, "Help for the Yarn session CLI.");
 
 		allOptions = new Options();
@@ -225,6 +230,7 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine {
 		allOptions.addOption(applicationType);
 		allOptions.addOption(zookeeperNamespace);
 		allOptions.addOption(nodeLabel);
+		allOptions.addOption(preUploadedFlinkPath);
 		allOptions.addOption(help);
 
 		// try loading a potential yarn properties file
@@ -442,6 +448,11 @@ public class FlinkYarnSessionCli extends AbstractCustomCommandLine {
 		if (commandLine.hasOption(nodeLabel.getOpt())) {
 			final String nodeLabelValue = commandLine.getOptionValue(this.nodeLabel.getOpt());
 			configuration.setString(YarnConfigOptions.NODE_LABEL, nodeLabelValue);
+		}
+
+		if (commandLine.hasOption(preUploadedFlinkPath.getOpt())) {
+			final String preUploadedFlinkPathValue = commandLine.getOptionValue(preUploadedFlinkPath.getOpt());
+			configuration.setString(YarnConfigOptions.PRE_UPLOADED_FLINK_PATH, preUploadedFlinkPathValue);
 		}
 
 		setLogConfigFileInConfig(configuration, configurationDirectory);
