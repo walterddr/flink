@@ -153,8 +153,10 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 
 	private String zookeeperNamespace;
 
-	// Pre-uploaded flink files, key is relative path(for example, lib/flink-dist_{version}.jar),
-	// and value is remote file status.
+	/**
+	 * Pre-uploaded flink files, key is relative path(for example, lib/flink-dist_{version}.jar),
+	 * and value is remote file status.
+	 */
 	private final Map<String, FileStatus> preUploadedFlinkFiles;
 
 	private YarnConfigOptions.UserJarInclusion userJarInclusion;
@@ -180,9 +182,7 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		this.customName = flinkConfiguration.getString(YarnConfigOptions.APPLICATION_NAME);
 		this.applicationType = flinkConfiguration.getString(YarnConfigOptions.APPLICATION_TYPE);
 		this.nodeLabel = flinkConfiguration.getString(YarnConfigOptions.NODE_LABEL);
-		this.preUploadedFlinkFiles = Utils.getPreUploadedFlinkFiles(
-			flinkConfiguration.get(YarnConfigOptions.PRE_UPLOADED_FLINK_PATH),
-			yarnConfiguration);
+		this.preUploadedFlinkFiles = new HashMap<>();
 
 		// we want to ignore the default value at this point.
 		this.zookeeperNamespace = flinkConfiguration.getString(HighAvailabilityOptions.HA_CLUSTER_ID, null);
@@ -742,6 +742,10 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		if (logConfigFilePath != null) {
 			systemShipFiles.add(new File(logConfigFilePath));
 		}
+
+		preUploadedFlinkFiles.putAll(Utils.getPreUploadedFlinkFiles(
+			flinkConfiguration.get(YarnConfigOptions.PRE_UPLOADED_FLINK_PATH),
+			yarnConfiguration));
 
 		addLibFoldersToShipFiles(systemShipFiles);
 
