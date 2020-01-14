@@ -24,13 +24,13 @@ import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.ml.api.misc.param.Params;
 import org.apache.flink.ml.common.linalg.DenseVector;
 import org.apache.flink.ml.common.linalg.SparseVector;
-import org.apache.flink.ml.common.utils.RowCollector;
 import org.apache.flink.ml.params.dataproc.vector.VectorToColumnsParams;
 import org.apache.flink.table.api.TableSchema;
 import org.apache.flink.types.Row;
 
 import org.junit.Test;
 
+import java.util.Collections;
 import java.util.List;
 
 import static org.junit.Assert.assertEquals;
@@ -48,9 +48,8 @@ public class VectorToColumnsMapperTest {
 			.set(VectorToColumnsParams.OUTPUT_COLS, new String[]{"f0", "f1"});
 
 		VectorToColumnsMapper mapper = new VectorToColumnsMapper(schema, params);
-		RowCollector collector = new RowCollector();
-		mapper.flatMap(Row.of(new DenseVector(new double[]{3.0, 4.0})), collector);
-		List<Row> rows = collector.getRows();
+		Row result = mapper.map(Row.of(new DenseVector(new double[]{3.0, 4.0})));
+		List<Row> rows = Collections.singletonList(result);
 		assertEquals(rows.get(0).getField(1), 3.0);
 		assertEquals(rows.get(0).getField(2), 4.0);
 		assertEquals(mapper.getOutputSchema(), new TableSchema(new String[]{"vec", "f0", "f1"},
@@ -69,9 +68,8 @@ public class VectorToColumnsMapperTest {
 
 		VectorToColumnsMapper mapper = new VectorToColumnsMapper(schema, params);
 
-		RowCollector collector = new RowCollector();
-		mapper.flatMap(Row.of(new DenseVector(new double[]{3.0, 4.0})), collector);
-		List<Row> rows = collector.getRows();
+		Row result = mapper.map(Row.of(new DenseVector(new double[]{3.0, 4.0})));
+		List<Row> rows = Collections.singletonList(result);
 		assertEquals(rows.get(0).getField(0), 3.0);
 		assertEquals(rows.get(0).getField(1), 4.0);
 		assertEquals(mapper.getOutputSchema(), new TableSchema(new String[]{"f0", "f1"},
@@ -88,9 +86,8 @@ public class VectorToColumnsMapperTest {
 
 		VectorToColumnsMapper mapper = new VectorToColumnsMapper(schema, params);
 
-		RowCollector collector = new RowCollector();
-		mapper.flatMap(Row.of(new SparseVector(3, new int[]{1, 2}, new double[]{3.0, 4.0})), collector);
-		List<Row> rows = collector.getRows();
+		Row result = mapper.map(Row.of(new SparseVector(3, new int[]{1, 2}, new double[]{3.0, 4.0})));
+		List<Row> rows = Collections.singletonList(result);
 		assertEquals(rows.get(0).getField(0), new SparseVector(3, new int[]{1, 2}, new double[]{3.0, 4.0}));
 		assertEquals(rows.get(0).getField(1), 0.0);
 		assertEquals(rows.get(0).getField(2), 3.0);
