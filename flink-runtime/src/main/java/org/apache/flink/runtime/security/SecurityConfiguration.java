@@ -21,9 +21,10 @@ package org.apache.flink.runtime.security;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.configuration.SecurityOptions;
-import org.apache.flink.runtime.security.modules.HadoopModuleFactory;
-import org.apache.flink.runtime.security.modules.JaasModuleFactory;
-import org.apache.flink.runtime.security.modules.ZookeeperModuleFactory;
+import org.apache.flink.runtime.security.factories.DefaultSecurityContextFactory;
+import org.apache.flink.runtime.security.factories.HadoopModuleFactory;
+import org.apache.flink.runtime.security.factories.JaasModuleFactory;
+import org.apache.flink.runtime.security.factories.ZookeeperModuleFactory;
 
 import org.apache.commons.lang3.StringUtils;
 

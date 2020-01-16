@@ -16,10 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.runtime.security.factories;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.factories.SecurityFactory;
+import org.apache.flink.runtime.security.modules.SecurityModule;
 
 /**
  * A factory for a {@link SecurityModule}. A factory can determine whether a {@link SecurityModule}

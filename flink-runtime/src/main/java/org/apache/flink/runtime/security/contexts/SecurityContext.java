@@ -16,17 +16,15 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.runtime.security.contexts;
 
-import org.apache.flink.runtime.security.SecurityConfiguration;
+import java.util.concurrent.Callable;
 
 /**
- * A {@link SecurityModuleFactory} for {@link JaasModule}.
+ * A security context with may be required to run a Callable.
  */
-public class JaasModuleFactory implements SecurityModuleFactory {
+public interface SecurityContext {
 
-	@Override
-	public SecurityModule createModule(SecurityConfiguration securityConfig) {
-		return new JaasModule(securityConfig);
-	}
+	<T> T runSecured(Callable<T> securedCallable) throws Exception;
+
 }

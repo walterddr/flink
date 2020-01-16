@@ -20,6 +20,7 @@ package org.apache.flink.runtime.security;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SecurityOptions;
+import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
 import org.apache.flink.runtime.security.factories.TestSecurityContextFactory;
 import org.apache.flink.runtime.security.factories.TestSecurityModuleFactory;
 

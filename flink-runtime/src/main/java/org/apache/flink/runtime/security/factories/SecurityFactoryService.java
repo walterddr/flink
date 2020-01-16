@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.security.factories;
 
-import org.apache.flink.runtime.security.modules.SecurityModuleFactory;
 import org.apache.flink.util.Preconditions;
 
 import java.util.ArrayList;

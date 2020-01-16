@@ -20,7 +20,6 @@ package org.apache.flink.runtime.security.factories;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.modules.SecurityModule;
-import org.apache.flink.runtime.security.modules.SecurityModuleFactory;
 
 /**
  * Test security module factory class for service provider discovery.

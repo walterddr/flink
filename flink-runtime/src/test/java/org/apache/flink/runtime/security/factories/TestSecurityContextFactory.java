@@ -19,7 +19,7 @@
 package org.apache.flink.runtime.security.factories;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityContext;
+import org.apache.flink.runtime.security.contexts.SecurityContext;
 
 import java.util.concurrent.Callable;
 
