@@ -35,7 +35,7 @@ import org.apache.flink.configuration.UnmodifiableConfiguration;
 import org.apache.flink.kubernetes.executors.KubernetesSessionClusterExecutor;
 import org.apache.flink.kubernetes.kubeclient.FlinkKubeClient;
 import org.apache.flink.kubernetes.kubeclient.KubeClientFactory;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.SecurityEnvironment;
 import org.apache.flink.util.FlinkException;
 
 import org.apache.commons.cli.CommandLine;
@@ -182,7 +182,7 @@ public class KubernetesSessionCli {
 
 		try {
 			final KubernetesSessionCli cli = new KubernetesSessionCli(configuration);
-			retCode = SecurityUtils.getInstalledContext().runSecured(() -> cli.run(args));
+			retCode = SecurityEnvironment.getInstalledContext().runSecured(() -> cli.run(args));
 		} catch (CliArgsException e) {
 			retCode = AbstractCustomCommandLine.handleCliArgsException(e, LOG);
 		} catch (Exception e) {

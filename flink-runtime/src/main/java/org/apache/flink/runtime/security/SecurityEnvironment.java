@@ -34,9 +34,9 @@ import java.util.List;
 /**
  * Security Environment that holds the security context and modules installed.
  */
-public class SecurityUtils {
+public class SecurityEnvironment {
 
-	private static final Logger LOG = LoggerFactory.getLogger(SecurityUtils.class);
+	private static final Logger LOG = LoggerFactory.getLogger(SecurityEnvironment.class);
 
 	private static SecurityContext installedContext = new NoOpSecurityContext();
 

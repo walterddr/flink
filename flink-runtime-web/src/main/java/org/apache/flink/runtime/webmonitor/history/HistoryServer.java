@@ -32,7 +32,7 @@ import org.apache.flink.runtime.net.SSLUtils;
 import org.apache.flink.runtime.rest.handler.router.Router;
 import org.apache.flink.runtime.rest.messages.DashboardConfiguration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.SecurityEnvironment;
 import org.apache.flink.runtime.webmonitor.WebMonitorUtils;
 import org.apache.flink.runtime.webmonitor.utils.WebFrontendBootstrap;
 import org.apache.flink.util.ExceptionUtils;
@@ -113,10 +113,10 @@ public class HistoryServer {
 		FileSystem.initialize(flinkConfig, PluginUtils.createPluginManagerFromRootFolder(flinkConfig));
 
 		// run the history server
-		SecurityUtils.install(new SecurityConfiguration(flinkConfig));
+		SecurityEnvironment.install(new SecurityConfiguration(flinkConfig));
 
 		try {
-			SecurityUtils.getInstalledContext().runSecured(new Callable<Integer>() {
+			SecurityEnvironment.getInstalledContext().runSecured(new Callable<Integer>() {
 				@Override
 				public Integer call() throws Exception {
 					HistoryServer hs = new HistoryServer(flinkConfig);

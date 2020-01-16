@@ -54,7 +54,7 @@ import org.apache.flink.runtime.rpc.RpcService;
 import org.apache.flink.runtime.rpc.RpcUtils;
 import org.apache.flink.runtime.rpc.akka.AkkaRpcServiceUtils;
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.SecurityEnvironment;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
 import org.apache.flink.runtime.util.ExecutorThreadFactory;
 import org.apache.flink.runtime.util.Hardware;
@@ -197,9 +197,9 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 	private SecurityContext installSecurityContext(Configuration configuration) throws Exception {
 		LOG.info("Install security context.");
 
-		SecurityUtils.install(new SecurityConfiguration(configuration));
+		SecurityEnvironment.install(new SecurityConfiguration(configuration));
 
-		return SecurityUtils.getInstalledContext();
+		return SecurityEnvironment.getInstalledContext();
 	}
 
 	private void runCluster(Configuration configuration) throws Exception {

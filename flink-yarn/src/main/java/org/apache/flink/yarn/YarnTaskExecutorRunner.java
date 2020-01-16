@@ -28,7 +28,7 @@ import org.apache.flink.core.plugin.PluginUtils;
 import org.apache.flink.runtime.clusterframework.BootstrapTools;
 import org.apache.flink.runtime.clusterframework.types.ResourceID;
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.SecurityEnvironment;
 import org.apache.flink.runtime.taskexecutor.TaskManagerRunner;
 import org.apache.flink.runtime.util.EnvironmentInformation;
 import org.apache.flink.runtime.util.JvmShutdownSafeguard;
@@ -101,7 +101,7 @@ public class YarnTaskExecutorRunner {
 			Preconditions.checkArgument(containerId != null,
 				"ContainerId variable %s not set", YarnResourceManager.ENV_FLINK_CONTAINER_ID);
 
-			SecurityUtils.getInstalledContext().runSecured((Callable<Void>) () -> {
+			SecurityEnvironment.getInstalledContext().runSecured((Callable<Void>) () -> {
 				TaskManagerRunner.runTaskManager(configuration, new ResourceID(containerId));
 				return null;
 			});
@@ -123,7 +123,7 @@ public class YarnTaskExecutorRunner {
 
 		setupConfigurationFromVariables(configuration, currDir, variables);
 
-		SecurityUtils.install(new SecurityConfiguration(configuration));
+		SecurityEnvironment.install(new SecurityConfiguration(configuration));
 	}
 
 	private static void setupConfigurationFromVariables(Configuration configuration, String currDir, Map<String, String> variables) throws IOException {

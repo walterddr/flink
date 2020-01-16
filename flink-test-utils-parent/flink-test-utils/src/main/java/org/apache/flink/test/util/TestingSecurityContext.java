@@ -22,7 +22,7 @@ import org.apache.flink.annotation.Internal;
 import org.apache.flink.runtime.security.DynamicConfiguration;
 import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.SecurityEnvironment;
 import org.apache.flink.runtime.security.factories.JaasModuleFactory;
 import org.apache.flink.runtime.security.factories.SecurityFactoryService;
 import org.apache.flink.runtime.security.factories.SecurityModuleFactory;
@@ -42,7 +42,7 @@ public class TestingSecurityContext {
 						Map<String, ClientSecurityConfiguration> clientSecurityConfigurationMap)
 			throws Exception {
 
-		SecurityUtils.install(config);
+		SecurityEnvironment.install(config);
 
 		// install dynamic JAAS entries
 		for (String factoryClassName : config.getSecurityModuleFactories()) {

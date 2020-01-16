@@ -37,13 +37,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 /**
- * Tests for the {@link SecurityUtils}.
+ * Tests for the {@link SecurityEnvironment}.
  */
-public class SecurityUtilsTest {
+public class SecurityEnvironmentTest {
 
 	@AfterClass
 	public static void afterClass() {
-		SecurityUtils.uninstall();
+		SecurityEnvironment.uninstall();
 	}
 
 	@Test
@@ -53,14 +53,14 @@ public class SecurityUtilsTest {
 			TestSecurityContextFactory.class.getCanonicalName(),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 
-		SecurityUtils.install(sc);
-		assertEquals(1, SecurityUtils.getInstalledModules().size());
+		SecurityEnvironment.install(sc);
+		assertEquals(1, SecurityEnvironment.getInstalledModules().size());
 		TestSecurityModuleFactory.TestSecurityModule testModule =
-			(TestSecurityModuleFactory.TestSecurityModule) SecurityUtils.getInstalledModules().get(0);
+			(TestSecurityModuleFactory.TestSecurityModule) SecurityEnvironment.getInstalledModules().get(0);
 		assertTrue(testModule.installed);
 
-		SecurityUtils.uninstall();
-		assertNull(SecurityUtils.getInstalledModules());
+		SecurityEnvironment.uninstall();
+		assertNull(SecurityEnvironment.getInstalledModules());
 		assertFalse(testModule.installed);
 	}
 
@@ -71,11 +71,11 @@ public class SecurityUtilsTest {
 			TestSecurityContextFactory.class.getCanonicalName(),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 
-		SecurityUtils.install(sc);
-		assertEquals(TestSecurityContextFactory.TestSecurityContext.class, SecurityUtils.getInstalledContext().getClass());
+		SecurityEnvironment.install(sc);
+		assertEquals(TestSecurityContextFactory.TestSecurityContext.class, SecurityEnvironment.getInstalledContext().getClass());
 
-		SecurityUtils.uninstall();
-		assertEquals(NoOpSecurityContext.class, SecurityUtils.getInstalledContext().getClass());
+		SecurityEnvironment.uninstall();
+		assertEquals(NoOpSecurityContext.class, SecurityEnvironment.getInstalledContext().getClass());
 	}
 
 	@Test

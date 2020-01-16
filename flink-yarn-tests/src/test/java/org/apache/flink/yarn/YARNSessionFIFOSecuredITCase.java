@@ -21,7 +21,7 @@ package org.apache.flink.yarn;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.SecurityEnvironment;
 import org.apache.flink.runtime.security.factories.DefaultSecurityContextFactory;
 import org.apache.flink.test.util.SecureTestEnvironment;
 import org.apache.flink.test.util.TestingSecurityContext;
@@ -85,7 +85,7 @@ public class YARNSessionFIFOSecuredITCase extends YARNSessionFIFOITCase {
 		try {
 			TestingSecurityContext.install(securityConfig, SecureTestEnvironment.getClientSecurityConfigurationMap());
 
-			SecurityUtils.getInstalledContext().runSecured(new Callable<Object>() {
+			SecurityEnvironment.getInstalledContext().runSecured(new Callable<Object>() {
 				@Override
 				public Integer call() {
 					startYARNSecureMode(YARN_CONFIGURATION, SecureTestEnvironment.getHadoopServicePrincipal(),
