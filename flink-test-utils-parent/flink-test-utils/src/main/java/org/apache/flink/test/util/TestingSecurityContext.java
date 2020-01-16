@@ -23,9 +23,9 @@ import org.apache.flink.runtime.security.DynamicConfiguration;
 import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
+import org.apache.flink.runtime.security.factories.JaasModuleFactory;
 import org.apache.flink.runtime.security.factories.SecurityFactoryService;
-import org.apache.flink.runtime.security.modules.JaasModuleFactory;
-import org.apache.flink.runtime.security.modules.SecurityModuleFactory;
+import org.apache.flink.runtime.security.factories.SecurityModuleFactory;
 
 import javax.security.auth.login.AppConfigurationEntry;
 

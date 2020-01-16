@@ -16,15 +16,19 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security;
+package org.apache.flink.runtime.security.factories;
 
-import java.util.concurrent.Callable;
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.modules.SecurityModule;
+import org.apache.flink.runtime.security.modules.ZooKeeperModule;
 
 /**
- * A security context with may be required to run a Callable.
+ * A {@link SecurityModuleFactory} for {@link ZooKeeperModule}.
  */
-public interface SecurityContext {
+public class ZookeeperModuleFactory implements SecurityModuleFactory {
 
-	<T> T runSecured(Callable<T> securedCallable) throws Exception;
-
+	@Override
+	public SecurityModule createModule(SecurityConfiguration securityConfig) {
+		return new ZooKeeperModule(securityConfig);
+	}
 }

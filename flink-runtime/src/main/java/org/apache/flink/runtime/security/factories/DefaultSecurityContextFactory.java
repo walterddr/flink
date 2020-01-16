@@ -16,10 +16,12 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security;
+package org.apache.flink.runtime.security.factories;
 
-import org.apache.flink.runtime.security.factories.SecurityContextFactory;
-import org.apache.flink.runtime.security.modules.HadoopModuleFactory;
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.contexts.HadoopSecurityContext;
+import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
+import org.apache.flink.runtime.security.contexts.SecurityContext;
 
 import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;

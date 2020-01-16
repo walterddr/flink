@@ -18,10 +18,12 @@
 
 package org.apache.flink.runtime.security;
 
+import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
+import org.apache.flink.runtime.security.contexts.SecurityContext;
 import org.apache.flink.runtime.security.factories.SecurityContextFactory;
 import org.apache.flink.runtime.security.factories.SecurityFactoryService;
+import org.apache.flink.runtime.security.factories.SecurityModuleFactory;
 import org.apache.flink.runtime.security.modules.SecurityModule;
-import org.apache.flink.runtime.security.modules.SecurityModuleFactory;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

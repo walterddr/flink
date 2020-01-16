@@ -16,17 +16,29 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.runtime.security.contexts;
 
-import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.util.Preconditions;
+
+import org.apache.hadoop.security.UserGroupInformation;
+
+import java.security.PrivilegedExceptionAction;
+import java.util.concurrent.Callable;
 
 /**
- * A {@link SecurityModuleFactory} for {@link ZooKeeperModule}.
+ * Hadoop security context which runs a Callable with the previously
+ * initialized UGI and appropriate security credentials.
  */
-public class ZookeeperModuleFactory implements SecurityModuleFactory {
+public class HadoopSecurityContext implements SecurityContext {
 
-	@Override
-	public SecurityModule createModule(SecurityConfiguration securityConfig) {
-		return new ZooKeeperModule(securityConfig);
+	private final UserGroupInformation ugi;
+
+	public HadoopSecurityContext(UserGroupInformation ugi) {
+		this.ugi = Preconditions.checkNotNull(ugi, "UGI passed cannot be null");
 	}
+
+	public <T> T runSecured(final Callable<T> securedCallable) throws Exception {
+		return ugi.doAs((PrivilegedExceptionAction<T>) securedCallable::call);
+	}
+
 }
