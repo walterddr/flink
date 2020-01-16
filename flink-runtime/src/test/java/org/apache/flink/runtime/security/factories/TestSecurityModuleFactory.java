@@ -16,23 +16,36 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.runtime.security.factories;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.factories.SecurityFactory;
+import org.apache.flink.runtime.security.modules.SecurityModule;
+import org.apache.flink.runtime.security.modules.SecurityModuleFactory;
 
 /**
- * A factory for a {@link SecurityModule}. A factory can determine whether a {@link SecurityModule}
- * works in the given environment (for example, it can check whether Hadoop dependencies are
- * available) and can then create (or not) a module based on that.
+ * Test security module factory class for service provider discovery.
  */
-@FunctionalInterface
-public interface SecurityModuleFactory extends SecurityFactory {
+public class TestSecurityModuleFactory implements SecurityModuleFactory {
+
+	@Override
+	public SecurityModule createModule(SecurityConfiguration securityConfig) {
+		return new TestSecurityModule();
+	}
 
 	/**
-	 * Creates and returns a {@link SecurityModule}. This can return {@code null} if the type
-	 * of {@link SecurityModule} that this factory can create does not work in the current
-	 * environment.
+	 * Test security module class.
 	 */
-	SecurityModule createModule(SecurityConfiguration securityConfig);
+	public static class TestSecurityModule implements SecurityModule {
+		public boolean installed;
+
+		@Override
+		public void install() throws SecurityInstallException {
+			installed = true;
+		}
+
+		@Override
+		public void uninstall() throws SecurityInstallException {
+			installed = false;
+		}
+	}
 }

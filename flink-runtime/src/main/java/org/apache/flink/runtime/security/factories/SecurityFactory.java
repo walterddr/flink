@@ -16,23 +16,10 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
-
-import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.factories.SecurityFactory;
+package org.apache.flink.runtime.security.factories;
 
 /**
- * A factory for a {@link SecurityModule}. A factory can determine whether a {@link SecurityModule}
- * works in the given environment (for example, it can check whether Hadoop dependencies are
- * available) and can then create (or not) a module based on that.
+ * Base class for all security related security factory instantiable.
  */
-@FunctionalInterface
-public interface SecurityModuleFactory extends SecurityFactory {
-
-	/**
-	 * Creates and returns a {@link SecurityModule}. This can return {@code null} if the type
-	 * of {@link SecurityModule} that this factory can create does not work in the current
-	 * environment.
-	 */
-	SecurityModule createModule(SecurityConfiguration securityConfig);
+public interface SecurityFactory {
 }
