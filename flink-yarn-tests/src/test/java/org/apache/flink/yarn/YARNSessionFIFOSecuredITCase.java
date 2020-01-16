@@ -20,11 +20,12 @@ package org.apache.flink.yarn;
 
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SecurityOptions;
+import org.apache.flink.runtime.security.DefaultSecurityContextFactory;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
-import org.apache.flink.runtime.security.modules.HadoopModule;
 import org.apache.flink.test.util.SecureTestEnvironment;
 import org.apache.flink.test.util.TestingSecurityContext;
+import org.apache.flink.yarn.util.TestHadoopModuleFactory;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 
@@ -75,10 +76,11 @@ public class YARNSessionFIFOSecuredITCase extends YARNSessionFIFOITCase {
 		SecurityConfiguration securityConfig =
 			new SecurityConfiguration(
 				flinkConfig,
-				Collections.singletonList(securityConfig1 -> {
-					// manually override the Hadoop Configuration
-					return new HadoopModule(securityConfig1, YARN_CONFIGURATION);
-				}));
+				DefaultSecurityContextFactory.class.getCanonicalName(),
+				Collections.singletonList(TestHadoopModuleFactory.class.getCanonicalName())
+			);
+
+		securityConfig.setProperty(TestHadoopModuleFactory.HADOOP_PROPERTY_CONFIG_KEY, YARN_CONFIGURATION);
 
 		try {
 			TestingSecurityContext.install(securityConfig, SecureTestEnvironment.getClientSecurityConfigurationMap());

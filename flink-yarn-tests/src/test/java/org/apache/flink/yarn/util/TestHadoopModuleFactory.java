@@ -1,4 +1,4 @@
-/*
+/**
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -7,7 +7,7 @@
  * "License"); you may not use this file except in compliance
  * with the License.  You may obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
@@ -16,23 +16,24 @@
  * limitations under the License.
  */
 
-package org.apache.flink.runtime.security.modules;
+package org.apache.flink.yarn.util;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
-import org.apache.flink.runtime.security.factories.SecurityFactory;
+import org.apache.flink.runtime.security.modules.HadoopModule;
+import org.apache.flink.runtime.security.modules.SecurityModule;
+import org.apache.flink.runtime.security.modules.SecurityModuleFactory;
+
+import org.apache.hadoop.conf.Configuration;
 
 /**
- * A factory for a {@link SecurityModule}. A factory can determine whether a {@link SecurityModule}
- * works in the given environment (for example, it can check whether Hadoop dependencies are
- * available) and can then create (or not) a module based on that.
+ * Test hadoop security module factory that loads customized hadoop configuration properties.
  */
-@FunctionalInterface
-public interface SecurityModuleFactory extends SecurityFactory {
+public class TestHadoopModuleFactory implements SecurityModuleFactory {
 
-	/**
-	 * Creates and returns a {@link SecurityModule}. This can return {@code null} if the type
-	 * of {@link SecurityModule} that this factory can create does not work in the current
-	 * environment.
-	 */
-	SecurityModule createModule(SecurityConfiguration securityConfig);
+	public static final String HADOOP_PROPERTY_CONFIG_KEY = "testing.hadoop.configuration";
+
+	@Override
+	public SecurityModule createModule(SecurityConfiguration securityConfig) {
+		return new HadoopModule(securityConfig, (Configuration) securityConfig.getProperty(HADOOP_PROPERTY_CONFIG_KEY));
+	}
 }
