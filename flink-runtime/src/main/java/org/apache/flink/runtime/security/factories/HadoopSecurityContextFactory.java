@@ -18,6 +18,7 @@
 
 package org.apache.flink.runtime.security.factories;
 
+import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.contexts.HadoopSecurityContext;
 import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
@@ -27,37 +28,45 @@ import org.apache.hadoop.security.UserGroupInformation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.IOException;
-
 /**
  * Default security context factory that instantiates {@link SecurityContext}
  * based on installed modules, it would instantiate {@link HadoopSecurityContext} if
  * a {@link HadoopModuleFactory} is included.
  */
-public class DefaultSecurityContextFactory implements SecurityContextFactory {
-	private static final Logger LOG = LoggerFactory.getLogger(DefaultSecurityContextFactory.class);
+public class HadoopSecurityContextFactory implements SecurityContextFactory {
+	private static final Logger LOG = LoggerFactory.getLogger(HadoopSecurityContextFactory.class);
+
+	@Override
+	public boolean isCompatibleWith(Configuration configuration, SecurityConfiguration securityConfig) {
+		// not compatible if no hadoop module factory configured.
+		if (!securityConfig.getSecurityModuleFactories().contains(HadoopModuleFactory.class.getCanonicalName())) {
+			return false;
+		}
+		// not compatible if Hadoop binary not in classpath.
+		try {
+			Class.forName(
+				"org.apache.hadoop.security.UserGroupInformation",
+				false,
+				HadoopSecurityContextFactory.class.getClassLoader());
+			return true;
+		} catch (ClassNotFoundException e) {
+			LOG.info("Cannot install HadoopSecurityContext because Hadoop cannot be found in the Classpath.");
+			return false;
+		}
+	}
 
 	@Override
 	public SecurityContext createContext(SecurityConfiguration securityConfig) {
-		// First check if we have installed hadoop security module and if Hadoop is in the ClassPath.
-		// If required by the context but doesn't exist in ClassPath, we return default NoOpContext
-		if (securityConfig.getSecurityModuleFactories().contains(HadoopModuleFactory.class.getCanonicalName())) {
-			try {
-				Class.forName(
-					"org.apache.hadoop.security.UserGroupInformation",
-					false,
-					DefaultSecurityContextFactory.class.getClassLoader());
-				UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
-				return new HadoopSecurityContext(loginUser);
-			} catch (ClassNotFoundException e) {
-				LOG.info("Cannot install HadoopSecurityContext because Hadoop cannot be found in the Classpath.");
-			} catch (LinkageError | IOException e) {
-				LOG.error("Cannot install HadoopSecurityContext.", e);
-			}
-			return new NoOpSecurityContext();
+		try {
+			Class.forName(
+				"org.apache.hadoop.security.UserGroupInformation",
+				false,
+				HadoopSecurityContextFactory.class.getClassLoader());
+			UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
+			return new HadoopSecurityContext(loginUser);
+		} catch (Exception e) {
+			LOG.error("Cannot install HadoopSecurityContext.", e);
 		}
-		else {
-			return new NoOpSecurityContext();
-		}
+		return new NoOpSecurityContext();
 	}
 }

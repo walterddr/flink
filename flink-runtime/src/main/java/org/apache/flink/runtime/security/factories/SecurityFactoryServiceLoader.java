@@ -26,20 +26,20 @@ import java.util.List;
 import java.util.ServiceLoader;
 
 /**
- * The Service provider discovery for searching suitable {@link SecurityFactory}
+ * The Service provider discovery for searching suitable security factory.
+ *
+ * <p>It could discover either {@link SecurityContextFactory} or {@link SecurityModuleFactory},
  * based on provided requirements.
  */
-public class SecurityFactoryService {
-
-	private static ServiceLoader<SecurityFactory> defaultLoader =
-		ServiceLoader.load(SecurityFactory.class);
+public class SecurityFactoryServiceLoader {
 
 	/**
 	 * Find a suitable {@link SecurityModuleFactory} based on canonical name.
 	 */
 	public static SecurityModuleFactory findModuleFactory(String securityModuleFactoryClass) throws NoMatchSecurityFactoryException {
-		return (SecurityModuleFactory) findFactoryInternal(
+		return findFactoryInternal(
 			securityModuleFactoryClass,
+			SecurityModuleFactory.class,
 			SecurityModuleFactory.class.getClassLoader());
 	}
 
@@ -47,34 +47,35 @@ public class SecurityFactoryService {
 	 * Find a suitable {@link SecurityContextFactory} based on canonical name.
 	 */
 	public static SecurityContextFactory findContextFactory(String securityContextFactoryClass) throws NoMatchSecurityFactoryException {
-		return (SecurityContextFactory) findFactoryInternal(
+		return findFactoryInternal(
 			securityContextFactoryClass,
+			SecurityContextFactory.class,
 			SecurityContextFactory.class.getClassLoader());
 	}
 
-	private static SecurityFactory findFactoryInternal(
+	private static <T> T findFactoryInternal(
 		String factoryClassCanonicalName,
+		Class<T> factoryClass,
 		ClassLoader classLoader) throws NoMatchSecurityFactoryException {
 
 		Preconditions.checkNotNull(factoryClassCanonicalName);
 
-		ServiceLoader<SecurityFactory> serviceLoader = null;
-
+		ServiceLoader<T> serviceLoader;
 		if (classLoader != null) {
-			serviceLoader = ServiceLoader.load(SecurityFactory.class, classLoader);
+			serviceLoader = ServiceLoader.load(factoryClass, classLoader);
 		} else {
-			serviceLoader = defaultLoader;
+			serviceLoader = ServiceLoader.load(factoryClass);
 		}
 
-		List<SecurityFactory> matchingFactories = new ArrayList<>();
-		Iterator<SecurityFactory> classFactoryIterator = serviceLoader.iterator();
+		List<T> matchingFactories = new ArrayList<>();
+		Iterator<T> classFactoryIterator = serviceLoader.iterator();
 		classFactoryIterator.forEachRemaining(classFactory -> {
 			if (factoryClassCanonicalName.matches(classFactory.getClass().getCanonicalName())) {
 				matchingFactories.add(classFactory);
 			}
 		});
 
-		if (matchingFactories.isEmpty() || matchingFactories.size() > 1) {
+		if (matchingFactories.size() != 1) {
 			throw new NoMatchSecurityFactoryException(
 				"zero or more than one security factory found",
 				factoryClassCanonicalName,

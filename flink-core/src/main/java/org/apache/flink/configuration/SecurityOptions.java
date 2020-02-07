@@ -21,6 +21,8 @@ package org.apache.flink.configuration;
 import org.apache.flink.annotation.docs.Documentation;
 import org.apache.flink.configuration.description.Description;
 
+import java.util.List;
+
 import static org.apache.flink.configuration.ConfigOptions.key;
 import static org.apache.flink.configuration.description.LineBreakElement.linebreak;
 import static org.apache.flink.configuration.description.LinkElement.link;
@@ -31,6 +33,30 @@ import static org.apache.flink.configuration.description.TextElement.text;
  * The set of configuration options relating to security.
  */
 public class SecurityOptions {
+
+	// ------------------------------------------------------------------------
+	//  Custom Security Service Loader
+	// ------------------------------------------------------------------------
+
+	public static final ConfigOption<String> SECURITY_CONTEXT_FACTORY_CLASS =
+		key("security.context.factory.class")
+			.stringType()
+			.defaultValue(
+				"org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory")
+			.withDescription("Security context factory that instantiates security context. " +
+				"by default it uses hadoop security context factory to instantiate a secure context." +
+				"it will fall back to a no-op context if hadoop security module is not installed");
+
+	public static final ConfigOption<List<String>> SECURITY_MODULE_FACTORY_CLASSES =
+		key("security.module.factory.classes")
+			.stringType()
+			.asList()
+			.defaultValues(
+				"org.apache.flink.runtime.security.factories.HadoopModuleFactory",
+				"org.apache.flink.runtime.security.factories.JaasModuleFactory",
+				"org.apache.flink.runtime.security.factories.ZookeeperModuleFactory")
+			.withDescription("Security module factories that instantiates security modules to be installed." +
+				"by default it loads Hadoop, JaaS and Zookeeper modules.");
 
 	// ------------------------------------------------------------------------
 	//  Kerberos Options

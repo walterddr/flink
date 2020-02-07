@@ -22,7 +22,6 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
-import org.apache.flink.runtime.security.factories.DefaultSecurityContextFactory;
 import org.apache.flink.test.util.SecureTestEnvironment;
 import org.apache.flink.test.util.TestingSecurityContext;
 import org.apache.flink.yarn.util.TestHadoopModuleFactory;
@@ -73,14 +72,13 @@ public class YARNSessionFIFOSecuredITCase extends YARNSessionFIFOITCase {
 		flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_PRINCIPAL,
 				SecureTestEnvironment.getHadoopServicePrincipal());
 
-		SecurityConfiguration securityConfig =
-			new SecurityConfiguration(
-				flinkConfig,
-				DefaultSecurityContextFactory.class.getCanonicalName(),
-				Collections.singletonList(TestHadoopModuleFactory.class.getCanonicalName())
-			);
+		// Setting customized security module class.
+		TestHadoopModuleFactory.hadoopConfiguration = YARN_CONFIGURATION;
+		flinkConfig.set(SecurityOptions.SECURITY_MODULE_FACTORY_CLASSES,
+			Collections.singletonList("org.apache.flink.yarn.util.TestHadoopModuleFactory"));
 
-		securityConfig.setProperty(TestHadoopModuleFactory.HADOOP_PROPERTY_CONFIG_KEY, YARN_CONFIGURATION);
+		SecurityConfiguration securityConfig =
+			new SecurityConfiguration(flinkConfig);
 
 		try {
 			TestingSecurityContext.install(securityConfig, SecureTestEnvironment.getClientSecurityConfigurationMap());

@@ -13,5 +13,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-org.apache.flink.runtime.security.factories.TestSecurityContextFactory
-org.apache.flink.runtime.security.factories.TestSecurityModuleFactory
+org.apache.flink.runtime.security.factories.HadoopModuleFactory
+org.apache.flink.runtime.security.factories.JaasModuleFactory
+org.apache.flink.runtime.security.factories.ZookeeperModuleFactory

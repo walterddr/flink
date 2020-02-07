@@ -18,8 +18,23 @@
 
 package org.apache.flink.runtime.security.factories;
 
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
+import org.apache.flink.runtime.security.contexts.SecurityContext;
+
 /**
- * Base class for all security related security factory instantiable.
+ * Default security context factory for {@link NoOpSecurityContext}.
  */
-public interface SecurityFactory {
+public class NoOpSecurityContextFactory implements SecurityContextFactory {
+
+	@Override
+	public boolean isCompatibleWith(Configuration configuration, SecurityConfiguration securityConfig) {
+		return true;
+	}
+
+	@Override
+	public SecurityContext createContext(SecurityConfiguration securityConfig) {
+		return new NoOpSecurityContext();
+	}
 }

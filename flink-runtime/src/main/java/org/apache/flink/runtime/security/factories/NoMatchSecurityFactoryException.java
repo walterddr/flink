@@ -21,12 +21,12 @@ package org.apache.flink.runtime.security.factories;
 import java.util.List;
 
 /**
- * Exception for not finding suitable {@link SecurityFactory}.
+ * Exception for not finding suitable security factories.
  */
 public class NoMatchSecurityFactoryException extends RuntimeException {
 
 	/**
-	 * Exception for not finding suitable {@link SecurityFactory}.
+	 * Exception for not finding suitable security factories.
 	 *
 	 * @param message message that indicates the current matching step
 	 * @param factoryClassCanonicalName required factory class
@@ -36,7 +36,7 @@ public class NoMatchSecurityFactoryException extends RuntimeException {
 	public NoMatchSecurityFactoryException(
 		String message,
 		String factoryClassCanonicalName,
-		List<SecurityFactory> matchingFactories,
+		List<?> matchingFactories,
 		Throwable cause) {
 		super("Could not find a suitable security factory for '"
 			+ factoryClassCanonicalName + "' in the classpath. all matching factories: "
@@ -44,7 +44,7 @@ public class NoMatchSecurityFactoryException extends RuntimeException {
 	}
 
 	/**
-	 * Exception for not finding suitable {@link SecurityFactory}.
+	 * Exception for not finding suitable security factories.
 	 *
 	 * @param message message that indicates the current matching step
 	 * @param factoryClassCanonicalName required factory class
@@ -53,7 +53,7 @@ public class NoMatchSecurityFactoryException extends RuntimeException {
 	public NoMatchSecurityFactoryException(
 		String message,
 		String factoryClassCanonicalName,
-		List<SecurityFactory> matchingFactories) {
+		List<?> matchingFactories) {
 		this(message, factoryClassCanonicalName, matchingFactories, null);
 	}
 }

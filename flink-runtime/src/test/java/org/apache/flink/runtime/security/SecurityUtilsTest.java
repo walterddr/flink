@@ -21,6 +21,7 @@ package org.apache.flink.runtime.security;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
+import org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory;
 import org.apache.flink.runtime.security.factories.TestSecurityContextFactory;
 import org.apache.flink.runtime.security.factories.TestSecurityModuleFactory;
 
@@ -76,6 +77,33 @@ public class SecurityUtilsTest {
 
 		SecurityUtils.uninstall();
 		assertEquals(NoOpSecurityContext.class, SecurityUtils.getInstalledContext().getClass());
+	}
+
+	@Test
+	public void testSecurityFactoriesParsing() {
+		Configuration testFlinkConf;
+		SecurityConfiguration testSecurityConf;
+
+		testFlinkConf = new Configuration();
+		testSecurityConf = new SecurityConfiguration(testFlinkConf);
+		// should load the default context security module factories.
+		assertEquals(HadoopSecurityContextFactory.class.getCanonicalName(),
+			testSecurityConf.getSecurityContextFactory());
+		// should load 3 default security module factories.
+		assertEquals(3, testSecurityConf.getSecurityModuleFactories().size());
+
+		testFlinkConf = new Configuration();
+		testFlinkConf.setString(SecurityOptions.SECURITY_CONTEXT_FACTORY_CLASS,
+			TestSecurityContextFactory.class.getCanonicalName());
+		testFlinkConf.set(SecurityOptions.SECURITY_MODULE_FACTORY_CLASSES,
+			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
+		testSecurityConf = new SecurityConfiguration(testFlinkConf);
+		// should pick up the SecurityOptions to override default factories.
+		assertEquals(TestSecurityContextFactory.class.getCanonicalName(),
+			testSecurityConf.getSecurityContextFactory());
+		assertEquals(1, testSecurityConf.getSecurityModuleFactories().size());
+		assertEquals(TestSecurityModuleFactory.class.getCanonicalName(),
+			testSecurityConf.getSecurityModuleFactories().get(0));
 	}
 
 	@Test

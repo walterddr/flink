@@ -20,8 +20,9 @@ package org.apache.flink.runtime.security;
 
 import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
+import org.apache.flink.runtime.security.factories.NoMatchSecurityFactoryException;
 import org.apache.flink.runtime.security.factories.SecurityContextFactory;
-import org.apache.flink.runtime.security.factories.SecurityFactoryService;
+import org.apache.flink.runtime.security.factories.SecurityFactoryServiceLoader;
 import org.apache.flink.runtime.security.factories.SecurityModuleFactory;
 import org.apache.flink.runtime.security.modules.SecurityModule;
 
@@ -65,21 +66,20 @@ public class SecurityUtils {
 
 		// install the security module factories
 		List<SecurityModule> modules = new ArrayList<>();
-		try {
-			for (String moduleFactoryClass : config.getSecurityModuleFactories()) {
-				SecurityModuleFactory moduleFactory = SecurityFactoryService.findModuleFactory(moduleFactoryClass);
-				if (moduleFactory == null) {
-					throw new Exception("unable to local security module factory for: " + moduleFactoryClass);
-				}
-				SecurityModule module = moduleFactory.createModule(config);
-				// can be null if a SecurityModule is not supported in the current environment
-				if (module != null) {
-					module.install();
-					modules.add(module);
-				}
+		for (String moduleFactoryClass : config.getSecurityModuleFactories()) {
+			SecurityModuleFactory moduleFactory = null;
+			try {
+				moduleFactory = SecurityFactoryServiceLoader.findModuleFactory(moduleFactoryClass);
+			} catch (NoMatchSecurityFactoryException ne) {
+				LOG.error("Unable to instantiate security module factory {}", moduleFactoryClass);
+				throw new IllegalArgumentException("Unable to find module factory class", ne);
 			}
-		} catch (Exception ex) {
-			throw new Exception("unable to install all security modules", ex);
+			SecurityModule module = moduleFactory.createModule(config);
+			// can be null if a SecurityModule is not supported in the current environment
+			if (module != null) {
+				module.install();
+				modules.add(module);
+			}
 		}
 		installedModules = modules;
 	}
@@ -87,7 +87,7 @@ public class SecurityUtils {
 	static void installContext(SecurityConfiguration config) throws Exception {
 		// install the security context factory
 		String contextFactoryClass = config.getSecurityContextFactory();
-		SecurityContextFactory contextFactory = SecurityFactoryService.findContextFactory(contextFactoryClass);
+		SecurityContextFactory contextFactory = SecurityFactoryServiceLoader.findContextFactory(contextFactoryClass);
 		if (contextFactory == null) {
 			throw new Exception("unable to local security context factory for: " + contextFactoryClass);
 		}

@@ -29,11 +29,13 @@ import org.apache.hadoop.conf.Configuration;
  * Test hadoop security module factory that loads customized hadoop configuration properties.
  */
 public class TestHadoopModuleFactory implements SecurityModuleFactory {
-
-	public static final String HADOOP_PROPERTY_CONFIG_KEY = "testing.hadoop.configuration";
+	public static Configuration hadoopConfiguration;
 
 	@Override
 	public SecurityModule createModule(SecurityConfiguration securityConfig) {
-		return new HadoopModule(securityConfig, (Configuration) securityConfig.getProperty(HADOOP_PROPERTY_CONFIG_KEY));
+		if (hadoopConfiguration == null) {
+			throw new IllegalStateException("Cannot instantiate test module, hadoop config not set!");
+		}
+		return new HadoopModule(securityConfig, hadoopConfiguration);
 	}
 }

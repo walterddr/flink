@@ -21,20 +21,16 @@ package org.apache.flink.runtime.security;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.IllegalConfigurationException;
 import org.apache.flink.configuration.SecurityOptions;
-import org.apache.flink.runtime.security.factories.DefaultSecurityContextFactory;
-import org.apache.flink.runtime.security.factories.HadoopModuleFactory;
-import org.apache.flink.runtime.security.factories.JaasModuleFactory;
-import org.apache.flink.runtime.security.factories.ZookeeperModuleFactory;
 
 import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
+import static org.apache.flink.configuration.SecurityOptions.SECURITY_CONTEXT_FACTORY_CLASS;
+import static org.apache.flink.configuration.SecurityOptions.SECURITY_MODULE_FACTORY_CLASSES;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
 /**
@@ -44,18 +40,9 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class SecurityConfiguration {
 
-	private static final String DEFAULT_CONTEXT_FACTORY = DefaultSecurityContextFactory.class.getCanonicalName();
-
-	private static final List<String> DEFAULT_MODULE_FACTORIES = Collections.unmodifiableList(Arrays.asList(
-		HadoopModuleFactory.class.getCanonicalName(),
-		JaasModuleFactory.class.getCanonicalName(),
-		ZookeeperModuleFactory.class.getCanonicalName()));
-
 	private final String securityContextFactory;
 
 	private final List<String> securityModuleFactories;
-
-	private final Map<String, Object> properties;
 
 	private final Configuration flinkConfig;
 
@@ -78,7 +65,9 @@ public class SecurityConfiguration {
 	 * @param flinkConf the Flink global configuration.
 */
 	public SecurityConfiguration(Configuration flinkConf) {
-		this(flinkConf, DEFAULT_CONTEXT_FACTORY, DEFAULT_MODULE_FACTORIES);
+		this(flinkConf,
+			flinkConf.getString(SECURITY_CONTEXT_FACTORY_CLASS),
+			flinkConf.get(SECURITY_MODULE_FACTORY_CLASSES));
 	}
 
 	/**
@@ -99,7 +88,6 @@ public class SecurityConfiguration {
 		this.securityModuleFactories = Collections.unmodifiableList(securityModuleFactories);
 		this.securityContextFactory = securityContextFactory;
 		this.flinkConfig = checkNotNull(flinkConf);
-		this.properties = new HashMap<>();
 		validate();
 	}
 
@@ -167,13 +155,5 @@ public class SecurityConfiguration {
 			.trim()
 			.replaceAll("(\\s*,+\\s*)+", ",")
 			.split(","));
-	}
-
-	public void setProperty(String key, Object value) {
-		properties.put(key, value);
-	}
-
-	public Object getProperty(String key) {
-		return properties.get(key);
 	}
 }

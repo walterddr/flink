@@ -24,7 +24,7 @@ import org.apache.flink.runtime.security.KerberosUtils;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.runtime.security.factories.JaasModuleFactory;
-import org.apache.flink.runtime.security.factories.SecurityFactoryService;
+import org.apache.flink.runtime.security.factories.SecurityFactoryServiceLoader;
 import org.apache.flink.runtime.security.factories.SecurityModuleFactory;
 
 import javax.security.auth.login.AppConfigurationEntry;
@@ -46,7 +46,7 @@ public class TestingSecurityContext {
 
 		// install dynamic JAAS entries
 		for (String factoryClassName : config.getSecurityModuleFactories()) {
-			SecurityModuleFactory factory = SecurityFactoryService.findModuleFactory(factoryClassName);
+			SecurityModuleFactory factory = SecurityFactoryServiceLoader.findModuleFactory(factoryClassName);
 			if (factory instanceof JaasModuleFactory) {
 				DynamicConfiguration jaasConf = (DynamicConfiguration) javax.security.auth.login.Configuration.getConfiguration();
 				for (Map.Entry<String, ClientSecurityConfiguration> e : clientSecurityConfigurationMap.entrySet()) {
