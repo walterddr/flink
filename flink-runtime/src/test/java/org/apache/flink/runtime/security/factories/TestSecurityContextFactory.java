@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.security.factories;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
 
@@ -30,7 +29,7 @@ import java.util.concurrent.Callable;
 public class TestSecurityContextFactory implements SecurityContextFactory {
 
 	@Override
-	public boolean isCompatibleWith(Configuration configuration, SecurityConfiguration securityConfig) {
+	public boolean isCompatibleWith(SecurityConfiguration securityConfig) {
 		return true;
 	}
 

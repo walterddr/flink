@@ -18,10 +18,8 @@
 
 package org.apache.flink.runtime.security.factories;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.contexts.HadoopSecurityContext;
-import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
 
 import org.apache.hadoop.security.UserGroupInformation;
@@ -37,7 +35,7 @@ public class HadoopSecurityContextFactory implements SecurityContextFactory {
 	private static final Logger LOG = LoggerFactory.getLogger(HadoopSecurityContextFactory.class);
 
 	@Override
-	public boolean isCompatibleWith(Configuration configuration, SecurityConfiguration securityConfig) {
+	public boolean isCompatibleWith(SecurityConfiguration securityConfig) {
 		// not compatible if no hadoop module factory configured.
 		if (!securityConfig.getSecurityModuleFactories().contains(HadoopModuleFactory.class.getCanonicalName())) {
 			return false;
@@ -65,8 +63,8 @@ public class HadoopSecurityContextFactory implements SecurityContextFactory {
 			UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
 			return new HadoopSecurityContext(loginUser);
 		} catch (Exception e) {
-			LOG.error("Cannot install HadoopSecurityContext.", e);
+			LOG.error("Cannot instantiate HadoopSecurityContext.", e);
+			return null;
 		}
-		return new NoOpSecurityContext();
 	}
 }

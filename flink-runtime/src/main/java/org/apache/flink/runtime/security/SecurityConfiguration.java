@@ -29,7 +29,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static org.apache.flink.configuration.SecurityOptions.SECURITY_CONTEXT_FACTORY_CLASS;
+import static org.apache.flink.configuration.SecurityOptions.SECURITY_CONTEXT_FACTORY_CLASSES;
 import static org.apache.flink.configuration.SecurityOptions.SECURITY_MODULE_FACTORY_CLASSES;
 import static org.apache.flink.util.Preconditions.checkNotNull;
 
@@ -40,7 +40,7 @@ import static org.apache.flink.util.Preconditions.checkNotNull;
  */
 public class SecurityConfiguration {
 
-	private final String securityContextFactory;
+	private final List<String> securityContextFactory;
 
 	private final List<String> securityModuleFactories;
 
@@ -66,7 +66,7 @@ public class SecurityConfiguration {
 */
 	public SecurityConfiguration(Configuration flinkConf) {
 		this(flinkConf,
-			flinkConf.getString(SECURITY_CONTEXT_FACTORY_CLASS),
+			flinkConf.get(SECURITY_CONTEXT_FACTORY_CLASSES),
 			flinkConf.get(SECURITY_MODULE_FACTORY_CLASSES));
 	}
 
@@ -76,7 +76,7 @@ public class SecurityConfiguration {
 	 * @param securityModuleFactories the security modules to apply.
 	 */
 	public SecurityConfiguration(Configuration flinkConf,
-			String securityContextFactory,
+			List<String> securityContextFactory,
 			List<String> securityModuleFactories) {
 		this.isZkSaslDisable = flinkConf.getBoolean(SecurityOptions.ZOOKEEPER_SASL_DISABLE);
 		this.keytab = flinkConf.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB);
@@ -111,7 +111,7 @@ public class SecurityConfiguration {
 		return flinkConfig;
 	}
 
-	public String getSecurityContextFactory() {
+	public List<String> getSecurityContextFactories() {
 		return securityContextFactory;
 	}
 

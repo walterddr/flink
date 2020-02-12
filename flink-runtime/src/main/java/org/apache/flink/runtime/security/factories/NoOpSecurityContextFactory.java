@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.security.factories;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
@@ -29,7 +28,7 @@ import org.apache.flink.runtime.security.contexts.SecurityContext;
 public class NoOpSecurityContextFactory implements SecurityContextFactory {
 
 	@Override
-	public boolean isCompatibleWith(Configuration configuration, SecurityConfiguration securityConfig) {
+	public boolean isCompatibleWith(SecurityConfiguration securityConfig) {
 		return true;
 	}
 

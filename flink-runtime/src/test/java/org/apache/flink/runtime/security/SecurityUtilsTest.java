@@ -51,7 +51,7 @@ public class SecurityUtilsTest {
 	public void testModuleInstall() throws Exception {
 		SecurityConfiguration sc = new SecurityConfiguration(
 			new Configuration(),
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 
 		SecurityUtils.install(sc);
@@ -69,7 +69,7 @@ public class SecurityUtilsTest {
 	public void testSecurityContext() throws Exception {
 		SecurityConfiguration sc = new SecurityConfiguration(
 			new Configuration(),
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 
 		SecurityUtils.install(sc);
@@ -88,19 +88,19 @@ public class SecurityUtilsTest {
 		testSecurityConf = new SecurityConfiguration(testFlinkConf);
 		// should load the default context security module factories.
 		assertEquals(HadoopSecurityContextFactory.class.getCanonicalName(),
-			testSecurityConf.getSecurityContextFactory());
+			testSecurityConf.getSecurityContextFactories());
 		// should load 3 default security module factories.
 		assertEquals(3, testSecurityConf.getSecurityModuleFactories().size());
 
 		testFlinkConf = new Configuration();
-		testFlinkConf.setString(SecurityOptions.SECURITY_CONTEXT_FACTORY_CLASS,
-			TestSecurityContextFactory.class.getCanonicalName());
+		testFlinkConf.set(SecurityOptions.SECURITY_CONTEXT_FACTORY_CLASSES,
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()));
 		testFlinkConf.set(SecurityOptions.SECURITY_MODULE_FACTORY_CLASSES,
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		testSecurityConf = new SecurityConfiguration(testFlinkConf);
 		// should pick up the SecurityOptions to override default factories.
 		assertEquals(TestSecurityContextFactory.class.getCanonicalName(),
-			testSecurityConf.getSecurityContextFactory());
+			testSecurityConf.getSecurityContextFactories());
 		assertEquals(1, testSecurityConf.getSecurityModuleFactories().size());
 		assertEquals(TestSecurityModuleFactory.class.getCanonicalName(),
 			testSecurityConf.getSecurityModuleFactories().get(0));
@@ -120,7 +120,7 @@ public class SecurityUtilsTest {
 		testFlinkConf.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, "Foo bar,Client");
 		testSecurityConf = new SecurityConfiguration(
 			testFlinkConf,
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		assertEquals(expectedLoginContexts, testSecurityConf.getLoginContextNames());
 
@@ -130,7 +130,7 @@ public class SecurityUtilsTest {
 		testFlinkConf.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, "Foo bar , Client");
 		testSecurityConf = new SecurityConfiguration(
 			testFlinkConf,
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		assertEquals(expectedLoginContexts, testSecurityConf.getLoginContextNames());
 
@@ -140,7 +140,7 @@ public class SecurityUtilsTest {
 		testFlinkConf.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, " Foo bar , Client ");
 		testSecurityConf = new SecurityConfiguration(
 			testFlinkConf,
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		assertEquals(expectedLoginContexts, testSecurityConf.getLoginContextNames());
 
@@ -150,7 +150,7 @@ public class SecurityUtilsTest {
 		testFlinkConf.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, "Foo bar,,Client");
 		testSecurityConf = new SecurityConfiguration(
 			testFlinkConf,
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		assertEquals(expectedLoginContexts, testSecurityConf.getLoginContextNames());
 
@@ -160,7 +160,7 @@ public class SecurityUtilsTest {
 		testFlinkConf.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, "Foo bar, ,, Client,");
 		testSecurityConf = new SecurityConfiguration(
 			testFlinkConf,
-			TestSecurityContextFactory.class.getCanonicalName(),
+			Collections.singletonList(TestSecurityContextFactory.class.getCanonicalName()),
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		assertEquals(expectedLoginContexts, testSecurityConf.getLoginContextNames());
 	}

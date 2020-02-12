@@ -26,6 +26,7 @@ import org.apache.flink.runtime.security.modules.SecurityModule;
  * works in the given environment (for example, it can check whether Hadoop dependencies are
  * available) and can then create (or not) a module based on that.
  */
+@FunctionalInterface
 public interface SecurityModuleFactory {
 
 	/**

@@ -86,12 +86,24 @@ public class SecurityUtils {
 
 	static void installContext(SecurityConfiguration config) throws Exception {
 		// install the security context factory
-		String contextFactoryClass = config.getSecurityContextFactory();
-		SecurityContextFactory contextFactory = SecurityFactoryServiceLoader.findContextFactory(contextFactoryClass);
-		if (contextFactory == null) {
-			throw new Exception("unable to local security context factory for: " + contextFactoryClass);
+		for (String contextFactoryClass : config.getSecurityContextFactories()) {
+			try {
+				SecurityContextFactory contextFactory = SecurityFactoryServiceLoader.findContextFactory(contextFactoryClass);
+				if (contextFactory.isCompatibleWith(config)) {
+					// install the first context that's compatible.
+					installedContext = contextFactory.createContext(config);
+					break;
+				} else {
+					LOG.warn("Unable to install incompatible security context factory {}", contextFactoryClass);
+				}
+			} catch (NoMatchSecurityFactoryException ne) {
+				LOG.warn("Unable to instantiate security context factory {}", contextFactoryClass);
+			}
 		}
-		installedContext = contextFactory.createContext(config);
+		if (installedContext == null) {
+			LOG.error("unable to install a valid security context factory!");
+			throw new Exception("unable to install a valid security context factory!");
+		}
 	}
 
 	static void uninstall() {

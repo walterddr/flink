@@ -38,13 +38,15 @@ public class SecurityOptions {
 	//  Custom Security Service Loader
 	// ------------------------------------------------------------------------
 
-	public static final ConfigOption<String> SECURITY_CONTEXT_FACTORY_CLASS =
-		key("security.context.factory.class")
+	public static final ConfigOption<List<String>> SECURITY_CONTEXT_FACTORY_CLASSES =
+		key("security.context.factory.classed")
 			.stringType()
-			.defaultValue(
-				"org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory")
+			.asList()
+			.defaultValues(
+				"org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory",
+				"org.apache.flink.runtime.security.factories.NoOpSecurityContextFactory")
 			.withDescription("Security context factory that instantiates security context. " +
-				"by default it uses hadoop security context factory to instantiate a secure context." +
+				"by default it uses hadoop security context factory to instantiate a secure context, " +
 				"it will fall back to a no-op context if hadoop security module is not installed");
 
 	public static final ConfigOption<List<String>> SECURITY_MODULE_FACTORY_CLASSES =

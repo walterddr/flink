@@ -18,7 +18,6 @@
 
 package org.apache.flink.runtime.security.factories;
 
-import org.apache.flink.configuration.Configuration;
 import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
 
@@ -27,17 +26,21 @@ import org.apache.flink.runtime.security.contexts.SecurityContext;
  *
  * <p>There can only be one security context installed in each secure runtime.
  */
+@FunctionalInterface
 public interface SecurityContextFactory {
 
 	/**
-	 * Returns {@code true} if this factory is compatible with the options in the
-	 * provided configuration, {@code false} otherwise.
+	 * Check if this factory is compatible with the security configuration.
 	 *
-	 * @param configuration flink configurations.
+	 * <p>Specific implementation must override this to provide compatibility
+	 * check, by default it will always return {@code false}.
+	 *
 	 * @param securityConfig security configurations.
-	 * @return true if factory is compatible
+	 * @return {@code true} if factory is compatible with the configuration.
 	 */
-	boolean isCompatibleWith(final Configuration configuration, final SecurityConfiguration securityConfig);
+	default boolean isCompatibleWith(final SecurityConfiguration securityConfig) {
+		return false;
+	}
 
 	/**
 	 * create security context.
