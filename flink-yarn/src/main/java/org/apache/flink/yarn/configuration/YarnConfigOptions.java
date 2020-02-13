@@ -239,17 +239,17 @@ public class YarnConfigOptions {
 				.noDefaultValue()
 				.withDescription("Specify YARN node label for the YARN application.");
 
-	public static final ConfigOption<Boolean> REQUIRE_LOCALIZE_KEYTAB =
-		key("yarn.security.kerberos.require.localize.keytab")
-			.defaultValue(Utils.DEFAULT_KEYTAB_LOCALIZE_STATE)
+	public static final ConfigOption<Boolean> SHIP_LOCAL_KEYTAB =
+		key("yarn.security.kerberos.ship-local-keytab")
+			.defaultValue(Utils.DEFAULT_KEYTAB_LOCALIZE)
 			.withDescription("With this configuration option, user can specify whether to submit the kerberos keytab" +
 				" file used on the client side as a localize resource. If set to true, Flink will upload the the keytab" +
 				" file configured in SecurityOption('security.kerberos.login.keytab') to YARN's container localize" +
 				" resource bucket with the specified relative path defined in 'yarn.security.kerberos.keytab.path'.");
 
 	public static final ConfigOption<String> LOCALIZED_KEYTAB_PATH =
-		key("yarn.security.kerberos.keytab.path")
-			.defaultValue(Utils.DEFAULT_KEYTAB_FILE_NAME)
+		key("yarn.security.kerberos.keytab")
+			.defaultValue(Utils.DEFAULT_KEYTAB_FILE)
 			.withDescription("With this configuration option, user can specify the path where kerberos keytab file will be" +
 				" localized to. If 'yarn.security.kerberos.require.localize.keytab' set to true, Flink will set the keytab" +
 				" file as YARN localize resource, path is relative to the local resource directory; If set to false, Flink" +

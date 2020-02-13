@@ -102,7 +102,7 @@ public class YarnEntrypointUtils {
 				if (f.exists()) { // keytab file exist in working directory.
 					keytabPath = f.getAbsolutePath();
 				} else { // fall back to default keytab file
-					f = new File(workingDirectory, Utils.DEFAULT_KEYTAB_FILE_NAME);
+					f = new File(workingDirectory, Utils.DEFAULT_KEYTAB_FILE);
 					keytabPath = f.getAbsolutePath();
 				}
 			}

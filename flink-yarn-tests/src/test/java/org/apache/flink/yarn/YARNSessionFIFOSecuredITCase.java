@@ -159,7 +159,7 @@ public class YARNSessionFIFOSecuredITCase extends YARNSessionFIFOITCase {
 				// pre-install Yarn local keytab, since both reuse the same temporary folder "tmp"
 				securityProperties.put(YarnConfigOptions.LOCALIZED_KEYTAB_PATH.key(), SecureTestEnvironment.getTestKeytab());
 				// unset keytab localization
-				securityProperties.put(YarnConfigOptions.REQUIRE_LOCALIZE_KEYTAB.key(), "false");
+				securityProperties.put(YarnConfigOptions.SHIP_LOCAL_KEYTAB.key(), "false");
 			}
 			if (SecureTestEnvironment.getHadoopServicePrincipal() != null) {
 				securityProperties.put(SecurityOptions.KERBEROS_LOGIN_PRINCIPAL.key(), SecureTestEnvironment.getHadoopServicePrincipal());

@@ -71,11 +71,11 @@ public final class Utils {
 
 	private static final Logger LOG = LoggerFactory.getLogger(Utils.class);
 
-	/** Keytab file name populated in YARN container. */
-	public static final Boolean DEFAULT_KEYTAB_LOCALIZE_STATE = true;
+	/** Keytab file is default as a localize resource to YARN container. */
+	public static final Boolean DEFAULT_KEYTAB_LOCALIZE = true;
 
 	/** Keytab file name populated in YARN container. */
-	public static final String DEFAULT_KEYTAB_FILE_NAME = "krb5.keytab";
+	public static final String DEFAULT_KEYTAB_FILE = "krb5.keytab";
 
 	/** KRB5 file name populated in YARN container for secure IT run. */
 	public static final String KRB5_FILE_NAME = "krb5.conf";
