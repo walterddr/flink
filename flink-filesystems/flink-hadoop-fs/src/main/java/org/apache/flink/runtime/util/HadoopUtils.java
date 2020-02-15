@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.Collection;
 
 /**
@@ -129,18 +130,31 @@ public class HadoopUtils {
 		return true;
 	}
 
+	public static boolean hasKerberosCredentials(UserGroupInformation ugi) {
+		return UserGroupInformation.isSecurityEnabled() && ugi.hasKerberosCredentials();
+	}
+
 	/**
 	 * Indicates whether the current user has an HDFS delegation token.
 	 */
-	public static boolean hasHDFSDelegationToken() throws Exception {
-		UserGroupInformation loginUser = UserGroupInformation.getCurrentUser();
-		Collection<Token<? extends TokenIdentifier>> usrTok = loginUser.getTokens();
+	public static boolean hasHDFSDelegationToken(UserGroupInformation ugi) {
+		Collection<Token<? extends TokenIdentifier>> usrTok = ugi.getTokens();
 		for (Token<? extends TokenIdentifier> token : usrTok) {
 			if (token.getKind().equals(HDFS_DELEGATION_TOKEN_KIND)) {
 				return true;
 			}
 		}
 		return false;
+	}
+
+	public static boolean hasHDFSDelegationToken() {
+		try {
+			UserGroupInformation loginUser = UserGroupInformation.getCurrentUser();
+			return hasHDFSDelegationToken(loginUser);
+		} catch (IOException e) {
+			LOG.warn("UGI get login user failed!", e);
+			return false;
+		}
 	}
 
 	/**

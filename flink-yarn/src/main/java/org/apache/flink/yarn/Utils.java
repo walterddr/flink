@@ -269,12 +269,19 @@ public final class Utils {
 
 	public static void setTokensFor(ContainerLaunchContext amContainer, List<Path> paths, Configuration conf) throws IOException {
 		Credentials credentials = new Credentials();
-		// for HDFS
-		TokenCache.obtainTokensForNamenodes(credentials, paths.toArray(new Path[0]), conf);
-		// for HBase
-		obtainTokenForHBase(credentials, conf);
+
 		// for user
 		UserGroupInformation currUsr = UserGroupInformation.getCurrentUser();
+		boolean hasKerberosCredentials = HadoopUtils.hasKerberosCredentials(currUsr);
+
+		// Delegation tokens can only be obtained if the real user has Kerberos credentials, so
+		// skip creation when those are not available.
+		if (hasKerberosCredentials) {
+			// for HDFS
+			TokenCache.obtainTokensForNamenodes(credentials, paths.toArray(new Path[0]), conf);
+			// for HBase
+			obtainTokenForHBase(credentials, conf);
+		}
 
 		Collection<Token<? extends TokenIdentifier>> usrTok = currUsr.getTokens();
 		for (Token<? extends TokenIdentifier> token : usrTok) {
