@@ -22,6 +22,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.runtime.security.contexts.NoOpSecurityContext;
 import org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory;
+import org.apache.flink.runtime.security.factories.NoOpSecurityContextFactory;
 import org.apache.flink.runtime.security.factories.TestSecurityContextFactory;
 import org.apache.flink.runtime.security.factories.TestSecurityModuleFactory;
 
@@ -87,8 +88,11 @@ public class SecurityUtilsTest {
 		testFlinkConf = new Configuration();
 		testSecurityConf = new SecurityConfiguration(testFlinkConf);
 		// should load the default context security module factories.
+		assertEquals(2, testSecurityConf.getSecurityContextFactories().size());
 		assertEquals(HadoopSecurityContextFactory.class.getCanonicalName(),
-			testSecurityConf.getSecurityContextFactories());
+			testSecurityConf.getSecurityContextFactories().get(0));
+		assertEquals(NoOpSecurityContextFactory.class.getCanonicalName(),
+			testSecurityConf.getSecurityContextFactories().get(1));
 		// should load 3 default security module factories.
 		assertEquals(3, testSecurityConf.getSecurityModuleFactories().size());
 

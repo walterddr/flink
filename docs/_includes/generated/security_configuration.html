@@ -9,6 +9,12 @@
     </thead>
     <tbody>
         <tr>
+            <td><h5>security.context.factory.classes</h5></td>
+            <td style="word-wrap: break-word;">"org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory";<wbr>"org.apache.flink.runtime.security.factories.NoOpSecurityContextFactory"</td>
+            <td>List&lt;String&gt;</td>
+            <td>Security context factory that instantiates security context. by default it uses hadoop security context factory to instantiate a secure context, it will fall back to a no-op context if hadoop security module is not installed</td>
+        </tr>
+        <tr>
             <td><h5>security.kerberos.login.contexts</h5></td>
             <td style="word-wrap: break-word;">(none)</td>
             <td>String</td>
@@ -31,16 +37,6 @@
             <td style="word-wrap: break-word;">true</td>
             <td>Boolean</td>
             <td>Indicates whether to read from your Kerberos ticket cache.</td>
-            <td><h5>security.context.factory.class</h5></td>
-            <td style="word-wrap: break-word;">"org.apache.flink.runtime.security.factories.HadoopSecurityContextFactory"</td>
-            <td>String</td>
-            <td>Security context factory that instantiates security context. by default it uses hadoop security context factory to instantiate a secure context.it will fall back to a no-op context if hadoop security module is not installed</td>
-        </tr>
-        <tr>
-            <td><h5>security.module.factory.classes</h5></td>
-            <td style="word-wrap: break-word;">"org.apache.flink.runtime.security.factories.HadoopModuleFactory";<wbr>"org.apache.flink.runtime.security.factories.JaasModuleFactory";<wbr>"org.apache.flink.runtime.security.factories.ZookeeperModuleFactory"</td>
-            <td>List&lt;String&gt;</td>
-            <td>Security module factories that instantiates security modules to be installed.by default it loads Hadoop, JaaS and Zookeeper modules.</td>
         </tr>
         <tr>
             <td><h5>security.module.factory.classes</h5></td>

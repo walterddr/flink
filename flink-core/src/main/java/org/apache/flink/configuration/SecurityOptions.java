@@ -39,7 +39,7 @@ public class SecurityOptions {
 	// ------------------------------------------------------------------------
 
 	public static final ConfigOption<List<String>> SECURITY_CONTEXT_FACTORY_CLASSES =
-		key("security.context.factory.classed")
+		key("security.context.factory.classes")
 			.stringType()
 			.asList()
 			.defaultValues(
