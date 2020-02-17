@@ -103,8 +103,9 @@ public class SecurityUtilsTest {
 			Collections.singletonList(TestSecurityModuleFactory.class.getCanonicalName()));
 		testSecurityConf = new SecurityConfiguration(testFlinkConf);
 		// should pick up the SecurityOptions to override default factories.
+		assertEquals(1, testSecurityConf.getSecurityContextFactories().size());
 		assertEquals(TestSecurityContextFactory.class.getCanonicalName(),
-			testSecurityConf.getSecurityContextFactories());
+			testSecurityConf.getSecurityContextFactories().get(0));
 		assertEquals(1, testSecurityConf.getSecurityModuleFactories().size());
 		assertEquals(TestSecurityModuleFactory.class.getCanonicalName(),
 			testSecurityConf.getSecurityModuleFactories().get(0));
