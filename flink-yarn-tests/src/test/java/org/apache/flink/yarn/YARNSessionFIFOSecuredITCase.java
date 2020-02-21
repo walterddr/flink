@@ -24,8 +24,8 @@ import org.apache.flink.runtime.security.SecurityConfiguration;
 import org.apache.flink.runtime.security.SecurityUtils;
 import org.apache.flink.test.util.SecureTestEnvironment;
 import org.apache.flink.test.util.TestingSecurityContext;
-import org.apache.flink.yarn.util.TestHadoopModuleFactory;
 import org.apache.flink.yarn.configuration.YarnConfigOptions;
+import org.apache.flink.yarn.util.TestHadoopModuleFactory;
 
 import org.apache.flink.shaded.guava18.com.google.common.collect.Lists;
 
