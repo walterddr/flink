@@ -31,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nullable;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -73,26 +74,73 @@ import java.util.Properties;
  */
 public class SecureTestEnvironment {
 
-	protected static final Logger LOG = LoggerFactory.getLogger(SecureTestEnvironment.class);
+	private static final Logger LOG = LoggerFactory.getLogger(SecureTestEnvironment.class);
 
-	private static MiniKdc kdc;
+	protected static MiniKdc kdc;
 
-	private static String testKeytab = null;
+	protected static String testKeytab = null;
 
-	private static String testPrincipal = null;
+	protected static String testPrincipal = null;
 
-	private static String testZkServerPrincipal = null;
+	protected static String testZkServerPrincipal = null;
 
-	private static String testZkClientPrincipal = null;
+	protected static String testZkClientPrincipal = null;
 
-	private static String testKafkaServerPrincipal = null;
+	protected static String testKafkaServerPrincipal = null;
 
-	private static String hadoopServicePrincipal = null;
+	protected static String hadoopServicePrincipal = null;
 
 	public static void prepare(TemporaryFolder tempFolder) {
-
+		File baseDirForSecureRun;
 		try {
-			File baseDirForSecureRun = tempFolder.newFolder();
+			baseDirForSecureRun = tempFolder.newFolder();
+		} catch (IOException e) {
+			throw new RuntimeException("Cannot instantiate temp folder for secure testing.", e);
+		}
+		populateMiniKDCContents(baseDirForSecureRun);
+		installSecurityContext();
+		populateJavaPropertyVariables();
+	}
+
+	public static void cleanup() {
+		LOG.info("Cleaning up Secure Environment");
+
+		if (kdc != null) {
+			kdc.stop();
+			LOG.info("Stopped KDC server");
+		}
+
+		resetSystemEnvVariables();
+
+		testKeytab = null;
+		testPrincipal = null;
+		testZkServerPrincipal = null;
+		hadoopServicePrincipal = null;
+
+	}
+
+	protected static void installSecurityContext() {
+		try {
+			//Security Context is established to allow non hadoop applications that requires JAAS
+			//based SASL/Kerberos authentication to work. However, for Hadoop specific applications
+			//the context can be reinitialized with Hadoop configuration by calling
+			//ctx.setHadoopConfiguration() for the UGI implementation to work properly.
+			//See Yarn test case module for reference
+			Configuration flinkConfig = GlobalConfiguration.loadConfiguration();
+			flinkConfig.setBoolean(SecurityOptions.ZOOKEEPER_SASL_DISABLE, false);
+			flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_KEYTAB, testKeytab);
+			flinkConfig.setBoolean(SecurityOptions.KERBEROS_LOGIN_USETICKETCACHE, false);
+			flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_PRINCIPAL, testPrincipal);
+			flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, "Client,KafkaClient");
+			SecurityConfiguration ctx = new SecurityConfiguration(flinkConfig);
+			TestingSecurityContext.install(ctx, getClientSecurityConfigurationMap());
+		} catch (Exception e) {
+			throw new RuntimeException("Exception occured while installing secure context.", e);
+		}
+	}
+
+	protected static void populateMiniKDCContents(File baseDirForSecureRun) {
+		try {
 			LOG.info("Base Directory for Secure Environment: {}", baseDirForSecureRun);
 
 			String hostName = "localhost";
@@ -114,9 +162,9 @@ public class SecureTestEnvironment {
 			testPrincipal = "client/" + hostName;
 
 			kdc.createPrincipal(keytabFile, testPrincipal, testZkServerPrincipal,
-					hadoopServicePrincipal,
-					testZkClientPrincipal,
-					testKafkaServerPrincipal);
+				hadoopServicePrincipal,
+				testZkClientPrincipal,
+				testKafkaServerPrincipal);
 
 			testPrincipal = testPrincipal + "@" + kdc.getRealm();
 			testZkServerPrincipal = testZkServerPrincipal + "@" + kdc.getRealm();
@@ -132,48 +180,12 @@ public class SecureTestEnvironment {
 			LOG.info("Test Hadoop Service Principal: {}", hadoopServicePrincipal);
 			LOG.info("Test Keytab: {}", testKeytab);
 			LOG.info("-------------------------------------------------------------------");
-
-			//Security Context is established to allow non hadoop applications that requires JAAS
-			//based SASL/Kerberos authentication to work. However, for Hadoop specific applications
-			//the context can be reinitialized with Hadoop configuration by calling
-			//ctx.setHadoopConfiguration() for the UGI implementation to work properly.
-			//See Yarn test case module for reference
-			Configuration flinkConfig = GlobalConfiguration.loadConfiguration();
-			flinkConfig.setBoolean(SecurityOptions.ZOOKEEPER_SASL_DISABLE, false);
-			flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_KEYTAB, testKeytab);
-			flinkConfig.setBoolean(SecurityOptions.KERBEROS_LOGIN_USETICKETCACHE, false);
-			flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_PRINCIPAL, testPrincipal);
-			flinkConfig.setString(SecurityOptions.KERBEROS_LOGIN_CONTEXTS, "Client,KafkaClient");
-			SecurityConfiguration ctx = new SecurityConfiguration(flinkConfig);
-			TestingSecurityContext.install(ctx, getClientSecurityConfigurationMap());
-
-			populateJavaPropertyVariables();
-
 		} catch (Exception e) {
 			throw new RuntimeException("Exception occured while preparing secure environment.", e);
 		}
-
 	}
 
-	public static void cleanup() {
-
-		LOG.info("Cleaning up Secure Environment");
-
-		if (kdc != null) {
-			kdc.stop();
-			LOG.info("Stopped KDC server");
-		}
-
-		resetSystemEnvVariables();
-
-		testKeytab = null;
-		testPrincipal = null;
-		testZkServerPrincipal = null;
-		hadoopServicePrincipal = null;
-
-	}
-
-	private static void populateJavaPropertyVariables() {
+	protected static void populateJavaPropertyVariables() {
 
 		if (LOG.isDebugEnabled()) {
 			System.setProperty("sun.security.krb5.debug", "true");
@@ -186,7 +198,7 @@ public class SecureTestEnvironment {
 		System.setProperty("zookeeper.kerberos.removeRealmFromPrincipal", "true");
 	}
 
-	private static void resetSystemEnvVariables() {
+	protected static void resetSystemEnvVariables() {
 		System.clearProperty("java.security.krb5.conf");
 		System.clearProperty("sun.security.krb5.debug");
 

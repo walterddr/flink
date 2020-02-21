@@ -22,12 +22,13 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.test.testdata.WordCountData;
-import org.apache.flink.test.util.SecureTestEnvironment;
 import org.apache.flink.testutils.logging.TestLoggerResource;
+import org.apache.flink.test.util.YarnSecureTestEnvironment;
 import org.apache.flink.yarn.cli.FlinkYarnSessionCli;
 import org.apache.flink.yarn.configuration.YarnConfigOptions;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.security.UserGroupInformation;
 import org.apache.hadoop.yarn.api.records.ApplicationId;
 import org.apache.hadoop.yarn.api.records.ApplicationReport;
 import org.apache.hadoop.yarn.api.records.YarnApplicationState;
@@ -116,11 +117,17 @@ public class YARNSessionFIFOITCase extends YarnTestBase {
 			args.add("-tm");
 			args.add("1024m");
 
-			if (SecureTestEnvironment.getTestKeytab() != null) {
-				args.add("-D" + SecurityOptions.KERBEROS_LOGIN_KEYTAB.key() + "=" + SecureTestEnvironment.getTestKeytab());
-			}
-			if (SecureTestEnvironment.getHadoopServicePrincipal() != null) {
-				args.add("-D" + SecurityOptions.KERBEROS_LOGIN_PRINCIPAL.key() + "=" + SecureTestEnvironment.getHadoopServicePrincipal());
+			// either delegation token or keytab should be used.
+			if (YarnSecureTestEnvironment.getTestDelegationToken() != null) {
+				args.add("-D" + UserGroupInformation.HADOOP_TOKEN_FILE_LOCATION + "=" +
+					YarnSecureTestEnvironment.getTestDelegationToken());
+			} else {
+				if (YarnSecureTestEnvironment.getTestKeytab() != null) {
+					args.add("-D" + SecurityOptions.KERBEROS_LOGIN_KEYTAB.key() + "=" + YarnSecureTestEnvironment.getTestKeytab());
+				}
+				if (YarnSecureTestEnvironment.getHadoopServicePrincipal() != null) {
+					args.add("-D" + SecurityOptions.KERBEROS_LOGIN_PRINCIPAL.key() + "=" + YarnSecureTestEnvironment.getHadoopServicePrincipal());
+				}
 			}
 
 			args.add("--name");
