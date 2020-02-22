@@ -19,6 +19,7 @@
 package org.apache.flink.test.util;
 
 import org.apache.flink.core.testutils.CommonTestUtils;
+
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.security.Credentials;
 import org.apache.hadoop.security.token.Token;

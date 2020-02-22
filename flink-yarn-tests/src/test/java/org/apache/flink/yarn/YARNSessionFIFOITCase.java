@@ -22,8 +22,8 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.GlobalConfiguration;
 import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.test.testdata.WordCountData;
-import org.apache.flink.testutils.logging.TestLoggerResource;
 import org.apache.flink.test.util.YarnSecureTestEnvironment;
+import org.apache.flink.testutils.logging.TestLoggerResource;
 import org.apache.flink.yarn.cli.FlinkYarnSessionCli;
 import org.apache.flink.yarn.configuration.YarnConfigOptions;
 
