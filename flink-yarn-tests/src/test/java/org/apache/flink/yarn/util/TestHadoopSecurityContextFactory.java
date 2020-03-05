@@ -19,8 +19,8 @@
 package org.apache.flink.yarn.util;
 
 import org.apache.flink.runtime.security.SecurityConfiguration;
+import org.apache.flink.runtime.security.SecurityContextInitializeException;
 import org.apache.flink.runtime.security.contexts.HadoopSecurityContext;
-import org.apache.flink.runtime.security.contexts.HadoopSecurityContextFactory;
 import org.apache.flink.runtime.security.contexts.SecurityContext;
 import org.apache.flink.runtime.security.contexts.SecurityContextFactory;
 
@@ -40,7 +40,7 @@ public class TestHadoopSecurityContextFactory implements SecurityContextFactory 
 			Class.forName(
 				"org.apache.hadoop.security.UserGroupInformation",
 				false,
-				HadoopSecurityContextFactory.class.getClassLoader());
+				TestHadoopSecurityContextFactory.class.getClassLoader());
 			return true;
 		} catch (ClassNotFoundException e) {
 			return false;
@@ -48,16 +48,12 @@ public class TestHadoopSecurityContextFactory implements SecurityContextFactory 
 	}
 
 	@Override
-	public SecurityContext createContext(SecurityConfiguration securityConfig) {
+	public SecurityContext createContext(SecurityConfiguration securityConfig) throws SecurityContextInitializeException {
 		try {
-			Class.forName(
-				"org.apache.hadoop.security.UserGroupInformation",
-				false,
-				TestHadoopSecurityContextFactory.class.getClassLoader());
 			UserGroupInformation loginUser = UserGroupInformation.getLoginUser();
 			return new HadoopSecurityContext(loginUser);
 		} catch (Exception e) {
-			return null;
+			throw new SecurityContextInitializeException("Cannot instantiate test security context", e);
 		}
 	}
 }
