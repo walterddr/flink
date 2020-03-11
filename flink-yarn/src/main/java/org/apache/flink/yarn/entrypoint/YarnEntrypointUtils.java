@@ -29,7 +29,6 @@ import org.apache.flink.configuration.SecurityOptions;
 import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.runtime.clusterframework.BootstrapTools;
 import org.apache.flink.util.Preconditions;
-import org.apache.flink.yarn.Utils;
 import org.apache.flink.yarn.YarnConfigKeys;
 
 import org.apache.hadoop.security.UserGroupInformation;
@@ -90,20 +89,20 @@ public class YarnEntrypointUtils {
 
 		final String keytabPath;
 
-		if (env.get(YarnConfigKeys.LOCAL_KEYTAB_PATH) == null) { // keytab not exist
+		if (env.get(YarnConfigKeys.KEYTAB_PATH) == null) { // keytab not exist
 			keytabPath = null;
 		} else {
 			File f;
-			f = new File(env.get(YarnConfigKeys.LOCAL_KEYTAB_PATH));
+			f = new File(env.get(YarnConfigKeys.KEYTAB_PATH));
 			if (f.exists()) { // keytab file exist in host environment.
 				keytabPath = f.getAbsolutePath();
 			} else {
-				f = new File(workingDirectory, env.get(YarnConfigKeys.LOCAL_KEYTAB_PATH));
+				f = new File(workingDirectory, env.get(YarnConfigKeys.KEYTAB_PATH));
 				if (f.exists()) { // keytab file exist in working directory.
 					keytabPath = f.getAbsolutePath();
-				} else { // fall back to default keytab file
-					f = new File(workingDirectory, Utils.DEFAULT_KEYTAB_FILE);
-					keytabPath = f.getAbsolutePath();
+				} else { // this shouldn't happen
+					throw new RuntimeException("Cannot find keytab file in: " + env.get(YarnConfigKeys.KEYTAB_PATH) +
+						"keytab file is set but doesn't exist, or wasn't set as localize resource.");
 				}
 			}
 		}

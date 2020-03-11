@@ -899,28 +899,20 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 			}
 		}
 
+		// Localize the keytab to YARN containers via local resource.
 		Path remotePathKeytab = null;
-		String localizedKeytabPath = null;
 		String keytab = configuration.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB);
-		if (keytab != null) {
-			boolean	requireLocalizedKeytab = flinkConfiguration.getBoolean(YarnConfigOptions.SHIP_LOCAL_KEYTAB);
-			localizedKeytabPath = flinkConfiguration.getString(YarnConfigOptions.LOCALIZED_KEYTAB_PATH);
-			if (requireLocalizedKeytab) {
-				// Localize the keytab to YARN containers via local resource.
-				LOG.info("Adding keytab {} to the AM container local resource bucket", keytab);
-				remotePathKeytab = setupSingleLocalResource(
-					localizedKeytabPath,
-					fs,
-					appId,
-					new Path(keytab),
-					localResources,
-					homeDir,
-					"",
-					fileReplication);
-			} else {
-				// // Assume Keytab is pre-installed in the container.
-				localizedKeytabPath = flinkConfiguration.getString(YarnConfigOptions.LOCALIZED_KEYTAB_PATH);
-			}
+		if (keytab != null && flinkConfiguration.getBoolean(YarnConfigOptions.SHIP_LOCAL_KEYTAB)) {
+			LOG.info("Adding keytab {} to the AM container local resource bucket", keytab);
+			remotePathKeytab = setupSingleLocalResource(
+				flinkConfiguration.getString(YarnConfigOptions.KEYTAB_FILE),
+				fs,
+				appId,
+				new Path(keytab),
+				localResources,
+				homeDir,
+				"",
+				fileReplication);
 		}
 
 		final boolean hasLogback = logConfigFilePath != null && logConfigFilePath.endsWith(CONFIG_FILE_LOGBACK_NAME);
@@ -962,13 +954,15 @@ public class YarnClusterDescriptor implements ClusterDescriptor<ApplicationId> {
 		// https://github.com/apache/hadoop/blob/trunk/hadoop-yarn-project/hadoop-yarn/hadoop-yarn-site/src/site/markdown/YarnApplicationSecurity.md#identity-on-an-insecure-cluster-hadoop_user_name
 		appMasterEnv.put(YarnConfigKeys.ENV_HADOOP_USER_NAME, UserGroupInformation.getCurrentUser().getUserName());
 
-		if (localizedKeytabPath != null) {
-			appMasterEnv.put(YarnConfigKeys.LOCAL_KEYTAB_PATH, localizedKeytabPath);
+		// set keytab/principle into appMasterEnv.
+		if (configuration.getString(SecurityOptions.KERBEROS_LOGIN_KEYTAB) != null) {
+			if (remotePathKeytab != null) {
+				appMasterEnv.put(YarnConfigKeys.KEYTAB_PATH, remotePathKeytab.toString());
+			} else {
+				appMasterEnv.put(YarnConfigKeys.KEYTAB_PATH, flinkConfiguration.getString(YarnConfigOptions.KEYTAB_FILE));
+			}
 			String principal = configuration.getString(SecurityOptions.KERBEROS_LOGIN_PRINCIPAL);
 			appMasterEnv.put(YarnConfigKeys.KEYTAB_PRINCIPAL, principal);
-			if (remotePathKeytab != null) {
-				appMasterEnv.put(YarnConfigKeys.REMOTE_KEYTAB_PATH, remotePathKeytab.toString());
-			}
 		}
 
 		//To support Yarn Secure Integration Test Scenario

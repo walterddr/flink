@@ -91,7 +91,7 @@ public class YARNSessionFIFOITCase extends YarnTestBase {
 	/**
 	 * Test regular operation, including command line parameter parsing.
 	 */
-	void runDetachedModeTest(Map<String, String> securityProperties) throws Exception {
+	void runDetachedModeTest(Map<String, String> extraProperties) throws Exception {
 		runTest(() -> {
 			LOG.info("Starting testDetachedMode()");
 
@@ -116,8 +116,8 @@ public class YARNSessionFIFOITCase extends YarnTestBase {
 			args.add("-tm");
 			args.add("1024m");
 
-			if (securityProperties != null) {
-				for (Map.Entry<String, String> property : securityProperties.entrySet()) {
+			if (extraProperties != null) {
+				for (Map.Entry<String, String> property : extraProperties.entrySet()) {
 					args.add("-D" + property.getKey() + "=" + property.getValue());
 				}
 			}

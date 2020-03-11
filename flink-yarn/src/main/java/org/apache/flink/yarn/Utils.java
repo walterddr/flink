@@ -23,6 +23,7 @@ import org.apache.flink.runtime.clusterframework.BootstrapTools;
 import org.apache.flink.runtime.clusterframework.ContaineredTaskManagerParameters;
 import org.apache.flink.runtime.util.HadoopUtils;
 import org.apache.flink.util.StringUtils;
+import org.apache.flink.yarn.configuration.YarnConfigOptions;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -427,15 +428,13 @@ public final class Utils {
 		String yarnClientUsername = env.get(YarnConfigKeys.ENV_HADOOP_USER_NAME);
 		require(yarnClientUsername != null, "Environment variable %s not set", YarnConfigKeys.ENV_HADOOP_USER_NAME);
 
-		final String remoteKeytabPath = env.get(YarnConfigKeys.REMOTE_KEYTAB_PATH);
-		final String localKeytabPath = env.get(YarnConfigKeys.LOCAL_KEYTAB_PATH);
+		final String keytabPath = env.get(YarnConfigKeys.KEYTAB_PATH);
 		final String keytabPrincipal = env.get(YarnConfigKeys.KEYTAB_PRINCIPAL);
 		final String remoteYarnConfPath = env.get(YarnConfigKeys.ENV_YARN_SITE_XML_PATH);
 		final String remoteKrb5Path = env.get(YarnConfigKeys.ENV_KRB5_PATH);
 
 		if (log.isDebugEnabled()) {
-			log.debug("TM:remote keytab path obtained {}", remoteKeytabPath);
-			log.debug("TM:local keytab path obtained {}", localKeytabPath);
+			log.debug("TM:keytab path obtained {}", keytabPath);
 			log.debug("TM:keytab principal obtained {}", keytabPrincipal);
 			log.debug("TM:remote yarn conf path obtained {}", remoteYarnConfPath);
 			log.debug("TM:remote krb5 path obtained {}", remoteKrb5Path);
@@ -446,11 +445,11 @@ public final class Utils {
 
 		//register keytab
 		LocalResource keytabResource = null;
-		if (remoteKeytabPath != null) {
-			log.info("Adding keytab {} to the AM container local resource bucket", remoteKeytabPath);
-			Path keytabPath = new Path(remoteKeytabPath);
-			FileSystem fs = keytabPath.getFileSystem(yarnConfig);
-			keytabResource = registerLocalResource(fs, keytabPath);
+		if (keytabPath != null && flinkConfig.getBoolean(YarnConfigOptions.SHIP_LOCAL_KEYTAB)) {
+			log.info("Adding keytab {} to the AM container local resource bucket", keytabPath);
+			Path keytab = new Path(keytabPath);
+			FileSystem fs = keytab.getFileSystem(yarnConfig);
+			keytabResource = registerLocalResource(fs, keytab);
 		}
 
 		//To support Yarn Secure Integration Test Scenario
@@ -493,8 +492,8 @@ public final class Utils {
 		if (krb5ConfResource != null) {
 			taskManagerLocalResources.put(KRB5_FILE_NAME, krb5ConfResource);
 		}
-		if (keytabResource != null) {
-			taskManagerLocalResources.put(localKeytabPath, keytabResource);
+		if (keytabResource != null && flinkConfig.getBoolean(YarnConfigOptions.SHIP_LOCAL_KEYTAB)) {
+			taskManagerLocalResources.put(keytabPath, keytabResource);
 		}
 
 		// prepare additional files to be shipped
@@ -538,12 +537,8 @@ public final class Utils {
 
 		containerEnv.put(YarnConfigKeys.ENV_HADOOP_USER_NAME, UserGroupInformation.getCurrentUser().getUserName());
 
-		if (remoteKeytabPath != null && localKeytabPath != null && keytabPrincipal != null) {
-			containerEnv.put(YarnConfigKeys.REMOTE_KEYTAB_PATH, remoteKeytabPath);
-			containerEnv.put(YarnConfigKeys.LOCAL_KEYTAB_PATH, localKeytabPath);
-			containerEnv.put(YarnConfigKeys.KEYTAB_PRINCIPAL, keytabPrincipal);
-		} else if (localKeytabPath != null && keytabPrincipal != null) {
-			containerEnv.put(YarnConfigKeys.LOCAL_KEYTAB_PATH, localKeytabPath);
+		if (keytabPath != null && keytabPrincipal != null) {
+			containerEnv.put(YarnConfigKeys.KEYTAB_PATH, keytabPath);
 			containerEnv.put(YarnConfigKeys.KEYTAB_PRINCIPAL, keytabPrincipal);
 		}
 

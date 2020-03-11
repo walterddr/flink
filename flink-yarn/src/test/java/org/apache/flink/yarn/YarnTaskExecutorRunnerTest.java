@@ -50,9 +50,8 @@ public class YarnTaskExecutorRunnerTest extends TestLogger {
 
 		final Map<String, String> envs = new HashMap<>(2);
 		envs.put(YarnConfigKeys.KEYTAB_PRINCIPAL, "testuser1@domain");
-		envs.put(YarnConfigKeys.REMOTE_KEYTAB_PATH, resourceDirPath);
 		// Local keytab path will be populated from default YarnConfigOptions.LOCALIZED_KEYTAB_PATH
-		envs.put(YarnConfigKeys.LOCAL_KEYTAB_PATH, Utils.DEFAULT_KEYTAB_FILE);
+		envs.put(YarnConfigKeys.KEYTAB_PATH, Utils.DEFAULT_KEYTAB_FILE);
 
 		Configuration configuration = new Configuration();
 		YarnTaskExecutorRunner.setupConfigurationAndInstallSecurityContext(configuration, resourceDirPath, envs);
@@ -79,7 +78,7 @@ public class YarnTaskExecutorRunnerTest extends TestLogger {
 		final Map<String, String> envs = new HashMap<>(2);
 		envs.put(YarnConfigKeys.KEYTAB_PRINCIPAL, "testuser1@domain");
 		// Try directly resolving local path when no remote keytab path is provided.
-		envs.put(YarnConfigKeys.LOCAL_KEYTAB_PATH, "src/test/resources/krb5.keytab");
+		envs.put(YarnConfigKeys.KEYTAB_PATH, "src/test/resources/krb5.keytab");
 
 		Configuration configuration = new Configuration();
 		YarnTaskExecutorRunner.setupConfigurationAndInstallSecurityContext(configuration, resourceDirPath, envs);
