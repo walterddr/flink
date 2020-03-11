@@ -233,6 +233,7 @@ public class HistoryServer {
 			LOG.info("Using directory {} as local cache.", webDir);
 
 			Router router = new Router();
+			router.addGet("/:*/logs", new HistoryServerDynamicFileHandler(config));
 			router.addGet("/:*", new HistoryServerStaticFileServerHandler(webDir));
 
 			if (!webDir.exists() && !webDir.mkdirs()) {
