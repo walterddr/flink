@@ -137,7 +137,7 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 			HighAvailabilityServicesUtils.AddressResolution.NO_ADDRESS_RESOLUTION);
 
 		jmxServer = new JMXServer();
-		jmxServer.start();
+		jmxServer.open();
 
 		rpcService = createRpcService(configuration, highAvailabilityServices);
 

@@ -21,55 +21,185 @@ package org.apache.flink.runtime.management;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.MBeanServer;
 import javax.management.remote.JMXConnectorServer;
 import javax.management.remote.JMXConnectorServerFactory;
 import javax.management.remote.JMXServiceURL;
 
+import java.io.Closeable;
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.net.MalformedURLException;
 import java.net.ServerSocket;
 import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 import java.rmi.server.RMIServerSocketFactory;
+import java.rmi.server.UnicastRemoteObject;
 import java.util.Collections;
 
 /**
- * Wrapper to host the programmatically started JMX server and RMI server.
+ * JMX Server implementation.
  *
- * <p>This server starts the {@link JMXConnectorServer} on a separate thread,
- * this must be closed properly in order to correctly stop the process.
+ * <p>This JMX Server is launched at start of any entry point of Flink
+ * containerized runtime.
+ *
+ * <p>This implementation is heavily based on j256/simplejmx project.
+ *
+ * @see <a href="https://github.com/j256/simplejmx/blob/master/src/main/java/com/j256/simplejmx/server/JmxServer.java">j256/simplejmx project</a>
  */
-public class JMXServer implements AutoCloseable {
+public class JMXServer implements Closeable {
 	private static final Logger LOGGER = LoggerFactory.getLogger(JMXServer.class);
 
-	private final int requestServerPort;
-
-	private FlinkRMIServerSocketFactory rmiServerSocketFactory;
+	// TODO make this JMXServer a static instance only for each JVM.
+	private String serviceUrl;
 	private int serverPort;
-	private JMXConnectorServer jmxServer;
-	private JMXServiceURL jmxUrl;
+	private int registryPort;
+	private JMXConnectorServer connector;
+	private MBeanServer mbeanServer;
+	private FlinkRMIServerSocketFactory serverSocketFactory;
+	private Registry rmiRegistry;
 
+	/**
+	 * Launch server with dynamic port assignment.
+	 */
 	public JMXServer() {
 		this(0);
 	}
 
-	JMXServer(int serverPort) {
-		this.requestServerPort = serverPort;
+	/**
+	 * Create a JMX server running on a particular registry-port.
+	 *
+	 * @param registryPort The RMI registry port that you specify in jconsole to connect to the server.
+	 */
+	public JMXServer(int registryPort) {
+		this(registryPort, 0);
 	}
 
-	public void start() throws Exception {
-		setJMXProperties();
-		// prepare env
-		rmiServerSocketFactory = new FlinkRMIServerSocketFactory();
-		LocateRegistry.createRegistry(this.requestServerPort, null, rmiServerSocketFactory);
-		int registryPort = rmiServerSocketFactory.socket.getLocalPort();
-		int serverPort = tryPokeForNewPort();
-		jmxUrl = new JMXServiceURL("service:jmx:rmi://localhost:" + serverPort + "/jndi/rmi://localhost:" + registryPort + "/jmxrmi");
-		jmxServer = JMXConnectorServerFactory.newJMXConnectorServer(
-			jmxUrl,
-			Collections.emptyMap(),
-			ManagementFactory.getPlatformMBeanServer());
-		// start jmx server
-		jmxServer.start();
+	/**
+	 * Create a JMX server running on a particular registry and server port pair.
+	 *
+	 * @param registryPort The RMI registry port that you specify in jconsole to connect to the server.
+	 * @param serverPort The RMI server port that jconsole uses to transfer data to/from the server.
+	 */
+	public JMXServer(int registryPort, int serverPort) {
+		this.registryPort = registryPort;
+		this.serverPort = serverPort;
+	}
+
+	/**
+	 * Start our JMX service.
+	 */
+	public synchronized void open() throws IOException {
+		if (mbeanServer != null) {
+			// if we've already assigned a mbean-server then there's nothing to start
+			return;
+		}
+		startRmiRegistry();
+		startJmxService();
+	}
+
+	@Override
+	public void close() {
+		try {
+			connector.stop();
+		} catch (Exception e) {
+			LOGGER.error("Unable to stop JMX server connector!", e);
+		} finally {
+			connector = null;
+			mbeanServer = null;
+		}
+
+		try {
+			UnicastRemoteObject.unexportObject(rmiRegistry, true);
+		} catch (Exception e) {
+			LOGGER.error("Unable to unexport rmiRegistry!", e);
+		} finally {
+			rmiRegistry = null;
+		}
+
+		try {
+			serverSocketFactory.getSocket().close();
+		} catch (Exception e) {
+			LOGGER.error("Unable to close server socket factory port!", e);
+			serverSocketFactory = null;
+		}
+		LOGGER.info("JMX connector server stopped!");
+	}
+
+	/**
+	 * Get port number to listen for JMX connections.
+	 */
+	public int getRegistryPort() {
+		return registryPort;
+	}
+
+	/**
+	 * Get the "RMI server port".
+	 */
+	public int getServerPort() {
+		if (serverPort == 0) {
+			return registryPort;
+		} else {
+			return serverPort;
+		}
+	}
+
+	/**
+	 * Get service URL which is used to specify the connection endpoints.
+	 */
+	public String getServiceUrl() {
+		return serviceUrl;
+	}
+
+	private void startRmiRegistry() throws IOException {
+		if (rmiRegistry != null) {
+			return;
+		}
+		try {
+			serverSocketFactory = new FlinkRMIServerSocketFactory();
+			rmiRegistry = LocateRegistry.createRegistry(registryPort, null, serverSocketFactory);
+			if (registryPort == 0) {
+				registryPort = serverSocketFactory.getSocket().getLocalPort();
+			}
+		} catch (IOException e) {
+			throw new IOException("Unable to create RMI registry on port " + registryPort, e);
+		}
+	}
+
+	private void startJmxService() throws IOException {
+		if (connector != null) {
+			return;
+		}
+		if (serverPort == 0) {
+			serverPort = tryPokeForNewPort();
+		}
+		String serverHost = "localhost";
+		String registryHost = "";
+		if (serviceUrl == null) {
+			serviceUrl = "service:jmx:rmi://" + serverHost + ":" + serverPort + "/jndi/rmi://" + registryHost + ":"
+				+ registryPort + "/jmxrmi";
+		}
+
+		JMXServiceURL url;
+		try {
+			url = new JMXServiceURL(serviceUrl);
+		} catch (MalformedURLException e) {
+			throw new IOException("Malformed service url created " + serviceUrl, e);
+		}
+
+		try {
+			mbeanServer = ManagementFactory.getPlatformMBeanServer();
+			connector = JMXConnectorServerFactory.newJMXConnectorServer(
+				url,
+				Collections.emptyMap(),
+				mbeanServer);
+			connector.start();
+			LOGGER.info("JMX connector server started at: {}", serviceUrl);
+		} catch (IOException e) {
+			mbeanServer = null;
+			connector = null;
+			throw new IOException("Could not start JMX connector server on URL: " + url, e);
+		}
 	}
 
 	private int tryPokeForNewPort() {
@@ -91,46 +221,9 @@ public class JMXServer implements AutoCloseable {
 		}
 	}
 
-	@Override
-	public void close() throws Exception {
-		if (jmxServer != null) {
-			jmxServer.stop();
-			jmxServer = null;
-		}
-		if (rmiServerSocketFactory != null) {
-			rmiServerSocketFactory.socket.close();
-			rmiServerSocketFactory = null;
-		}
-	}
-
-	public int getRegistryPort() {
-		return rmiServerSocketFactory.socket.getLocalPort();
-	}
-
-	public int getServerPort() {
-		return serverPort;
-	}
-
-	public String getJmxUrl() {
-		return jmxUrl.toString();
-	}
-
-	private static void setJMXProperties() {
-		if (System.getProperty("com.sun.management.jmxremote") != null) {
-			LOGGER.warn("com.sun.management.jmxremote doesn't need to be set, please use flink.runtime.enable.jmxremote instead!");
-		}
-		checkAndSetSystemProperties("com.sun.management.jmxremote.authenticate", "false");
-		checkAndSetSystemProperties("com.sun.management.jmxremote.local.only", "false");
-		checkAndSetSystemProperties("com.sun.management.jmxremote.ssl", "false");
-		checkAndSetSystemProperties("java.rmi.server.hostname", "localhost");
-	}
-
-	private static void checkAndSetSystemProperties(String k, String v) {
-		if (System.getProperty(k) == null) {
-			System.setProperty(k, v);
-		}
-	}
-
+	/**
+	 * Socket factory which allows us peek assigned service socket port.
+	 */
 	private static class FlinkRMIServerSocketFactory implements RMIServerSocketFactory {
 		ServerSocket socket = null;
 
@@ -138,5 +231,10 @@ public class JMXServer implements AutoCloseable {
 			socket = new ServerSocket(port);
 			return socket;
 		}
+
+		public ServerSocket getSocket() {
+			return socket;
+		}
+
 	}
 }

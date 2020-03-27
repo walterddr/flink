@@ -259,7 +259,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 				configuration.getOptional(JobManagerOptions.RPC_BIND_PORT));
 
 			jmxServer = new JMXServer();
-			jmxServer.start();
+			jmxServer.open();
 
 			// update the configuration used to create the high availability services
 			configuration.setString(JobManagerOptions.ADDRESS, commonRpcService.getAddress());
