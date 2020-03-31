@@ -23,6 +23,7 @@ import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.ConfigurationUtils;
 import org.apache.flink.configuration.GlobalConfiguration;
+import org.apache.flink.configuration.JMXServerOptions;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.WebOptions;
 import org.apache.flink.core.fs.FileSystem;
@@ -43,6 +44,7 @@ import org.apache.flink.runtime.highavailability.HighAvailabilityServices;
 import org.apache.flink.runtime.highavailability.HighAvailabilityServicesUtils;
 import org.apache.flink.runtime.io.network.partition.TaskExecutorPartitionTrackerImpl;
 import org.apache.flink.runtime.leaderretrieval.LeaderRetrievalException;
+import org.apache.flink.runtime.management.JMXServer;
 import org.apache.flink.runtime.metrics.MetricRegistry;
 import org.apache.flink.runtime.metrics.MetricRegistryConfiguration;
 import org.apache.flink.runtime.metrics.MetricRegistryImpl;
@@ -104,6 +106,8 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 
 	private final RpcService rpcService;
 
+	private final JMXServer jmxServer;
+
 	private final HighAvailabilityServices highAvailabilityServices;
 
 	private final MetricRegistryImpl metricRegistry;
@@ -133,6 +137,8 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 			configuration,
 			executor,
 			HighAvailabilityServicesUtils.AddressResolution.NO_ADDRESS_RESOLUTION);
+
+		jmxServer = JMXServer.getInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
 
 		rpcService = createRpcService(configuration, highAvailabilityServices);
 
@@ -204,6 +210,12 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 		synchronized (lock) {
 			Collection<CompletableFuture<Void>> terminationFutures = new ArrayList<>(3);
 			Exception exception = null;
+
+			try {
+				jmxServer.stop();
+			} catch (Exception e) {
+				exception = ExceptionUtils.firstOrSuppressed(e, exception);
+			}
 
 			try {
 				blobCacheService.close();
