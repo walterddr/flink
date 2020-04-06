@@ -18,6 +18,7 @@
 
 package org.apache.flink.metrics.jmx;
 
+import org.apache.flink.configuration.JMXServerOptions;
 import org.apache.flink.metrics.CharacterFilter;
 import org.apache.flink.metrics.Counter;
 import org.apache.flink.metrics.Gauge;
@@ -43,7 +44,6 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.util.HashMap;
 import java.util.Hashtable;
@@ -78,20 +78,15 @@ public class JMXReporter implements MetricReporter {
 	/** The names under which the registered metrics have been added to the MBeanServer. */
 	private final Map<Metric, ObjectName> registeredMetrics;
 
-	/** The server to which JMX clients connect to. Allows for better control over port usage. */
-	@Nullable
-	private final JMXServer jmxServer;
-
 	JMXReporter(@Nullable final String portsConfig) {
 		this.mBeanServer = ManagementFactory.getPlatformMBeanServer();
 		this.registeredMetrics = new HashMap<>();
 
 		if (portsConfig != null) {
-			this.jmxServer = JMXServer.getInstance(portsConfig);
-		} else {
-			this.jmxServer = null;
+			LOG.warn("JMXReporter port config is deprecated. " +
+				"Please use: {} instead!", JMXServerOptions.JMX_SERVER_PORT);
+			JMXServer.startInstance(portsConfig);
 		}
-		LOG.info("Configured JMXReporter with {port:{}}", portsConfig);
 	}
 
 	// ------------------------------------------------------------------------
@@ -104,20 +99,14 @@ public class JMXReporter implements MetricReporter {
 
 	@Override
 	public void close() {
-		if (jmxServer != null) {
-			try {
-				jmxServer.stop();
-			} catch (IOException e) {
-				LOG.error("Failed to stop JMX server.", e);
-			}
-		}
+		// Nothing to close.
 	}
 
 	public Optional<Integer> getPort() {
-		if (jmxServer == null) {
+		if (JMXServer.getInstance() == null) {
 			return Optional.empty();
 		} else {
-			return Optional.of(jmxServer.getPort());
+			return Optional.of(JMXServer.getPort());
 		}
 	}
 

@@ -54,47 +54,57 @@ public class JMXServer {
 	private JMXConnectorServer connector;
 	private int port;
 
-	public static JMXServer getInstance(String portsConfig) {
+	/**
+	 * Construct a new JMV-wide JMX server or acquire existing JMX server.
+	 *
+	 * <p>If JMXServer static instance is already constructed, it will not be
+	 * reconstruct again. Instead a warning sign will be posted if the desired
+	 * port configuration doesn't match the existing JMXServer static instance.
+	 *
+	 * @param portsConfig port configuration of the JMX server.
+	 * @return JMXServer static instance.
+	 */
+	public static JMXServer startInstance(String portsConfig) {
 		if (instance == null) {
 			if (!portsConfig.equals(JMXServerOptions.JMX_SERVER_PORT.defaultValue())) {
 				instance = startJMXServerWithPortRanges(portsConfig);
 			} else {
-				instance = new JMXServer();
+				LOG.info("Configured JMXReporter with random port.");
+				try {
+					instance = new JMXServer();
+					instance.start(0);
+				} catch (IOException e) {
+					throw new RuntimeException("Could not start JMX server on random port!");
+				}
 			}
 		}
+		LOG.warn("JVM-wide JMXServer already started at port: " + instance.port);
 		return instance;
 	}
 
-	public int getPort() {
-		return port;
+	/**
+	 * Acquire existing JMX server. or null if not started.
+	 *
+	 * @return the JMXServer static instance.
+	 */
+	public static JMXServer getInstance() {
+		return instance;
 	}
 
-	public void start(int port) throws IOException {
-		if (rmiRegistry != null && connector != null) {
-			LOG.debug("JMXServer is already running.");
-			return;
+	/**
+	 * Stop the JMX server.
+	 */
+	public static void stopInstance() throws IOException {
+		if (instance != null) {
+			instance.stop();
 		}
-		startRmiRegistry(port);
-		startJmxService(port);
-		this.port = port;
 	}
 
-	public void stop() throws IOException {
-		if (connector != null) {
-			try {
-				connector.stop();
-			} finally {
-				connector = null;
-			}
-		}
-		if (rmiRegistry != null) {
-			try {
-				UnicastRemoteObject.unexportObject(rmiRegistry, true);
-			} catch (NoSuchObjectException e) {
-				throw new IOException("Could not un-export our RMI registry", e);
-			} finally {
-				rmiRegistry = null;
-			}
+	public static int getPort() {
+		if (instance != null) {
+			return instance.port;
+		} else {
+			return -1;
 		}
 	}
 
@@ -121,6 +131,35 @@ public class JMXServer {
 			throw new RuntimeException("Could not start JMX server on any configured port. Ports: " + portsConfig);
 		}
 		return successfullyStartedServer;
+	}
+
+	private void start(int port) throws IOException {
+		if (rmiRegistry != null && connector != null) {
+			LOG.debug("JMXServer is already running.");
+			return;
+		}
+		startRmiRegistry(port);
+		startJmxService(port);
+		this.port = port;
+	}
+
+	private void stop() throws IOException {
+		if (connector != null) {
+			try {
+				connector.stop();
+			} finally {
+				connector = null;
+			}
+		}
+		if (rmiRegistry != null) {
+			try {
+				UnicastRemoteObject.unexportObject(rmiRegistry, true);
+			} catch (NoSuchObjectException e) {
+				throw new IOException("Could not un-export our RMI registry", e);
+			} finally {
+				rmiRegistry = null;
+			}
+		}
 	}
 
 	/**

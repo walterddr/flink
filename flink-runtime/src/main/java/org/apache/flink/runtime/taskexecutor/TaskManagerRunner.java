@@ -106,8 +106,6 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 
 	private final RpcService rpcService;
 
-	private final JMXServer jmxServer;
-
 	private final HighAvailabilityServices highAvailabilityServices;
 
 	private final MetricRegistryImpl metricRegistry;
@@ -138,7 +136,7 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 			executor,
 			HighAvailabilityServicesUtils.AddressResolution.NO_ADDRESS_RESOLUTION);
 
-		jmxServer = JMXServer.getInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
+		JMXServer.startInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
 
 		rpcService = createRpcService(configuration, highAvailabilityServices);
 
@@ -212,7 +210,7 @@ public class TaskManagerRunner implements FatalErrorHandler, AutoCloseableAsync 
 			Exception exception = null;
 
 			try {
-				jmxServer.stop();
+				JMXServer.stopInstance();
 			} catch (Exception e) {
 				exception = ExceptionUtils.firstOrSuppressed(e, exception);
 			}

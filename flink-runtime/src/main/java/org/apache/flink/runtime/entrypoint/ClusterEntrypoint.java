@@ -138,9 +138,6 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 	private HeartbeatServices heartbeatServices;
 
 	@GuardedBy("lock")
-	private JMXServer jmxServer;
-
-	@GuardedBy("lock")
 	private RpcService commonRpcService;
 
 	@GuardedBy("lock")
@@ -261,7 +258,7 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 				configuration.getString(JobManagerOptions.BIND_HOST),
 				configuration.getOptional(JobManagerOptions.RPC_BIND_PORT));
 
-			jmxServer = JMXServer.getInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
+			JMXServer.startInstance(configuration.getString(JMXServerOptions.JMX_SERVER_PORT));
 
 			// update the configuration used to create the high availability services
 			configuration.setString(JobManagerOptions.ADDRESS, commonRpcService.getAddress());
@@ -383,12 +380,10 @@ public abstract class ClusterEntrypoint implements AutoCloseableAsync, FatalErro
 				terminationFutures.add(commonRpcService.stopService());
 			}
 
-			if (jmxServer != null) {
-				try {
-					jmxServer.stop();
-				} catch (Throwable t) {
-					exception = ExceptionUtils.firstOrSuppressed(t, exception);
-				}
+			try {
+				JMXServer.stopInstance();
+			} catch (Throwable t) {
+				exception = ExceptionUtils.firstOrSuppressed(t, exception);
 			}
 
 			if (exception != null) {
