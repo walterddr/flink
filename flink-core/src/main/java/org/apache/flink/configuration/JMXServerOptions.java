@@ -30,14 +30,14 @@ import static org.apache.flink.configuration.ConfigOptions.key;
 public class JMXServerOptions {
 
 	/** Port configured to enable JMX server for metrics and debugging. */
-	@Documentation.Section(Documentation.Sections.COMMON_MISCELLANEOUS)
+	@Documentation.Section(Documentation.Sections.EXPERT_DEBUGGING_AND_TUNING)
 	public static final ConfigOption<String>JMX_SERVER_PORT =
 		key("jmx.server.port")
 			.defaultValue("-1")
 			.withDescription("The port range for the JMX server to start the registry. The " +
 				"port config can be a single port: \"9123\", a range of ports: \"50100-50200\", " +
-				"or a list of ranges and ports: \"50100-50200,50300-50400,51234\".")
-			.withDeprecatedKeys("metrics.reporter.my_jmx_reporter.port");
+				"or a list of ranges and ports: \"50100-50200,50300-50400,51234\". \n" +
+				"this option overrides metrics.reporter.*.port configurations.");
 
 	// ------------------------------------------------------------------------
 
